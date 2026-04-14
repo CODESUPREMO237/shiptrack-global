@@ -1,9 +1,13 @@
 // src/app/api/shipments/[code]/route.js
 import { NextResponse } from 'next/server';
+import { requireAdminUser } from '@/lib/adminAuth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 
 export async function PATCH(req, { params }) {
   try {
+    const authResult = await requireAdminUser(req);
+    if (authResult.response) return authResult.response;
+
     const resolvedParams = await params;
     const { code } = resolvedParams;
 

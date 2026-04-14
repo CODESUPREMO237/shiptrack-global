@@ -14,12 +14,30 @@ if (!supabasePublishableKey) {
 }
 
 // Public client (frontend-safe) - uses publishable key
-export const supabase = createClient(supabaseUrl, supabasePublishableKey)
+export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+  },
+})
+
+export const supabaseServerAuth = createClient(supabaseUrl, supabasePublishableKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+})
 
 // Admin client (service role, can bypass RLS) - only for server-side
 // This will be undefined in client-side code, which is fine
 export const supabaseAdmin = supabaseSecretKey 
-  ? createClient(supabaseUrl, supabaseSecretKey)
+  ? createClient(supabaseUrl, supabaseSecretKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
   : null
 
 // Log warning if admin client is not available (only in development)

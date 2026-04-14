@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { adminFetch } from '@/lib/adminApi'
 
 export default function ShipmentEdit({
   code,
@@ -17,7 +18,7 @@ export default function ShipmentEdit({
     if (!code || !open) return
     mounted.current = true
     setShipment(null) // reset when opening modal
-    fetch(`/api/shipments/${code}`)
+    adminFetch(`/api/shipments/${code}`)
       .then((r) => r.json())
       .then((data) => {
         if (mounted.current) setShipment(data)
@@ -47,9 +48,8 @@ export default function ShipmentEdit({
     })
 
     try {
-      const res = await fetch(`/api/shipments/${code}`, {
+      const res = await adminFetch(`/api/shipments/${code}`, {
         method: 'PATCH',
-        headers: {'Content-Type':'application/json'},
         body: JSON.stringify(payload),
       })
       const data = await res.json()

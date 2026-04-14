@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { adminFetch } from '@/lib/adminApi'
 
 export default function ShipmentAdminControls({ code, onUpdated }) {
   const [busy, setBusy] = useState(false)
@@ -22,9 +23,8 @@ export default function ShipmentAdminControls({ code, onUpdated }) {
       if (form.receiver_address) payload.receiver_address = form.receiver_address
       if (form.status) payload.status = form.status
 
-      const res = await fetch(`/api/shipments/${code}`, {
+      const res = await adminFetch(`/api/shipments/${code}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
       const data = await res.json()
@@ -43,9 +43,8 @@ export default function ShipmentAdminControls({ code, onUpdated }) {
     if (!form.current_lat || !form.current_lng) return alert('Enter coords')
     setBusy(true)
     try {
-      const res = await fetch('/api/update-location', {
+      const res = await adminFetch('/api/update-location', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code,
           lat: parseFloat(form.current_lat),

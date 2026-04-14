@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
+import { requireAdminUser } from '@/lib/adminAuth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 
 export async function POST(req) {
   try {
+    const authResult = await requireAdminUser(req);
+    if (authResult.response) return authResult.response;
+
     const { shipmentCode } = await req.json();
     if (!shipmentCode) return NextResponse.json({ error: 'Shipment code required' }, { status: 400 });
 

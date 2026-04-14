@@ -1,12 +1,13 @@
 import './globals.css'
 import Footer from '@/components/Footer';
+import CookieConsent from '@/components/CookieConsent';
 
 export const metadata = {
-  title: 'Shipment Tracking System',
-  description: 'Track your shipments in real-time',
+  title: 'ShipTrack Global — Worldwide Shipping & Logistics',
+  description: 'Track your shipments in real-time with ShipTrack Global. Fast delivery, global coverage, and 24/7 support for all your shipping needs.',
    icons: {
-    icon: '/favicon.ico',  // this must match the filename in /public
-    apple: '/favicon.ico', 
+    icon: '/logo/mark-modern.svg',
+    apple: '/logo/mark-modern.svg',
   },
 }
 
@@ -20,6 +21,7 @@ export default function RootLayout({ children }) {
       <body suppressHydrationWarning={true}>
         {children}
         <Footer />
+        <CookieConsent />
       </body>
     </html>
   )

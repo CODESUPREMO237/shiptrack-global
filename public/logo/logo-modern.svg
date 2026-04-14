@@ -1,0 +1,17 @@
+<svg width="480" height="120" viewBox="0 0 480 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="480" height="120" rx="24" fill="white"/>
+  <rect x="16" y="16" width="88" height="88" rx="24" fill="#0F172A"/>
+  <path d="M39 64L61 42H81L59 64H39Z" fill="#E2E8F0"/>
+  <path d="M39 67H59L78 86H58L39 67Z" fill="#CBD5E1"/>
+  <path d="M58 64L81 42V62L58 86V64Z" fill="#FF6A13"/>
+  <path d="M56 40H85V48H69L89 68L83 74L63 54V70H56V40Z" fill="#FF6A13"/>
+  <text x="126" y="58" fill="#0F172A" font-family="'Segoe UI', Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="-0.8">
+    ShipTrack
+  </text>
+  <text x="126" y="88" fill="#FF6A13" font-family="'Segoe UI', Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="1.2">
+    GLOBAL
+  </text>
+  <text x="227" y="88" fill="#64748B" font-family="'Segoe UI', Arial, sans-serif" font-size="13" font-weight="600" letter-spacing="3.4">
+    LOGISTICS PLATFORM
+  </text>
+</svg>

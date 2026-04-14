@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { v4 as uuidv4 } from 'uuid';
+import { adminFetch } from "@/lib/adminApi";
 
 import { 
   Package, 
@@ -394,9 +395,8 @@ export default function AdminForm({ onSuccess }) {
       }]
     };
 
-    const res = await fetch("/api/shipments", {
+    const res = await adminFetch("/api/shipments", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 

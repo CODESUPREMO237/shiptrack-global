@@ -3,6 +3,20 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Brand colors — single source of truth */
+  --brand-primary: #4D148C;
+  --brand-primary-dark: #3a0f6e;
+  --brand-primary-light: #f0ebfa;
+  --brand-accent: #FF6600;
+  --brand-accent-dark: #cc5200;
+  --brand-accent-light: #fff3eb;
+
+  /* Status colors */
+  --status-transit: #1a56db;
+  --status-delivered: #057a55;
+  --status-hold: #c27803;
+  --status-cancelled: #c81e1e;
 }
 
 @theme inline {
@@ -19,11 +33,10 @@
   }
 }
 
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .input {
@@ -32,5 +45,24 @@ body {
 
 input,
 textarea {
-  color-scheme: light dark; /* tells OS we handle both themes */
+  color-scheme: light dark;
+}
+
+/* Brand button utilities */
+.btn-brand {
+  background-color: var(--brand-primary);
+  color: #ffffff;
+  transition: background-color 0.2s;
+}
+.btn-brand:hover {
+  background-color: var(--brand-primary-dark);
+}
+
+.btn-accent {
+  background-color: var(--brand-accent);
+  color: #ffffff;
+  transition: background-color 0.2s;
+}
+.btn-accent:hover {
+  background-color: var(--brand-accent-dark);
 }

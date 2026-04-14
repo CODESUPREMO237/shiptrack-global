@@ -1,9 +1,13 @@
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import nodemailer from "nodemailer";
 import { NextResponse } from "next/server";
+import { requireAdminUser } from "@/lib/adminAuth";
 
 // GET handler to fetch all feedbacks
-export async function GET() {
+export async function GET(req) {
+  const authResult = await requireAdminUser(req);
+  if (authResult.response) return authResult.response;
+
   if (!supabaseAdmin) {
     return NextResponse.json(
       { success: false, error: "Server not configured" },

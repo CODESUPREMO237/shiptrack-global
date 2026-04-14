@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
+import { requireAdminUser } from '@/lib/adminAuth'
 import { supabaseAdmin } from '@/lib/supabaseClient'
 
 export async function PUT(req) {
   try {
+    const authResult = await requireAdminUser(req)
+    if (authResult.response) return authResult.response
+
     const { code, status } = await req.json()
 
     if (!code || !status) {

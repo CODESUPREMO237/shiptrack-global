@@ -1,5 +1,6 @@
 // src/app/api/tracking/[code]/route.js
 import { NextResponse } from 'next/server';
+import { requireAdminUser } from '@/lib/adminAuth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 import { sendAdminCommentEmail } from '@/lib/email';
 
@@ -99,6 +100,9 @@ export async function GET(request, { params }) {
 // PATCH: update shipment data (status, location, progress, admin_comment)
 export async function PATCH(request, { params }) {
   try {
+    const authResult = await requireAdminUser(request);
+    if (authResult.response) return authResult.response;
+
     const { code } = await params;
     if (!code) {
       return NextResponse.json({ error: 'Missing tracking code' }, { status: 400 });

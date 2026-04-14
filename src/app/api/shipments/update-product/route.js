@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
+import { requireAdminUser } from '@/lib/adminAuth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
 
 export async function POST(req) {
   try {
+    const authResult = await requireAdminUser(req);
+    if (authResult.response) return authResult.response;
+
     const { shipmentCode, index, field, value } = await req.json();
     if (!shipmentCode || index === undefined || !field) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 });

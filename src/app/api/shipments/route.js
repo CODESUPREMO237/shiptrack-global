@@ -1,9 +1,13 @@
 // src/app/api/shipments/route.js
 import { NextResponse } from 'next/server'
+import { requireAdminUser } from '@/lib/adminAuth'
 import { supabaseAdmin } from '@/lib/supabaseClient'
 
 export async function POST(req) {
   try {
+    const authResult = await requireAdminUser(req)
+    if (authResult.response) return authResult.response
+
     const data = await req.json()
 
     const code = 'SHP' + Math.random().toString(36).substring(2, 8).toUpperCase()
@@ -191,8 +195,11 @@ export async function POST(req) {
   }
 }
 
-export async function GET() {
+export async function GET(req) {
   try {
+    const authResult = await requireAdminUser(req)
+    if (authResult.response) return authResult.response
+
     const { data, error } = await supabaseAdmin
       .from('shipments')
       .select('*')

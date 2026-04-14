@@ -8,6 +8,11 @@ import Link from 'next/link';
 import { Headphones } from 'lucide-react';
 
 export default function Footer() {
+  const handleCookieConsent = () => {
+    localStorage.removeItem("cookie_consent");
+    window.location.reload();
+  };
+
   return (
     <footer className="bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-12">
@@ -16,17 +21,9 @@ export default function Footer() {
           <div>
             <Link href="/" className="flex items-center mb-4">
               <img 
-                src="/logo/favicon.png" 
+                src="/logo/mark-modern.svg" 
                 alt="ShipTrack Global" 
-                className="h-10 w-auto"
-                onError={(e) => {
-                  const extensions = ['jpg', 'jpeg', 'svg', 'webp'];
-                  const currentExt = e.target.src.split('.').pop();
-                  const nextExtIdx = extensions.indexOf(currentExt) + 1;
-                  if (nextExtIdx < extensions.length) {
-                    e.target.src = `/logo/logo.${extensions[nextExtIdx]}`;
-                  }
-                }}
+                className="h-10 w-10"
               />
             </Link>
             <p className="text-gray-400 text-sm">
@@ -101,21 +98,28 @@ export default function Footer() {
                 <div className="flex gap-3">
                   <a 
                     href="#" 
-                    className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center hover:bg-purple-600 transition"
+                    className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center transition"
+                    style={{':hover':{backgroundColor:'var(--brand-primary)'}}}
+                    onMouseEnter={e=>e.currentTarget.style.backgroundColor='var(--brand-primary)'}
+                    onMouseLeave={e=>e.currentTarget.style.backgroundColor=''}
                     aria-label="Facebook"
                   >
                     <span className="text-sm">f</span>
                   </a>
                   <a 
                     href="#" 
-                    className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center hover:bg-purple-600 transition"
+                    className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center transition"
+                    onMouseEnter={e=>e.currentTarget.style.backgroundColor='var(--brand-primary)'}
+                    onMouseLeave={e=>e.currentTarget.style.backgroundColor=''}
                     aria-label="Twitter/X"
                   >
                     <span className="text-sm">𝕏</span>
                   </a>
                   <a 
                     href="#" 
-                    className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center hover:bg-purple-600 transition"
+                    className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center transition"
+                    onMouseEnter={e=>e.currentTarget.style.backgroundColor='var(--brand-primary)'}
+                    onMouseLeave={e=>e.currentTarget.style.backgroundColor=''}
                     aria-label="LinkedIn"
                   >
                     <span className="text-sm">in</span>
@@ -138,6 +142,12 @@ export default function Footer() {
             <Link href="/policy" className="text-gray-500 hover:text-white transition">
               Privacy Policy
             </Link>
+            <button 
+              onClick={handleCookieConsent}
+              className="text-gray-500 hover:text-white transition cursor-pointer"
+            >
+              Cookie Consent
+            </button>
             <Link href="/support" className="text-gray-500 hover:text-white transition">
               Support
             </Link>

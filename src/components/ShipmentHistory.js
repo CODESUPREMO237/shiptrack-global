@@ -54,44 +54,36 @@ export default function ShipmentHistory({ shipmentCode }) {
 
     if (loading) {
         return (
-            <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-                <div className="flex items-center justify-center">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-purple-200 border-t-purple-600"></div>
-                    <p className="ml-3 text-gray-600">Loading history...</p>
-                </div>
+            <div className="flex items-center gap-3 py-4 text-sm text-gray-500">
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-200" style={{borderTopColor:'var(--brand-primary)'}}></div>
+                Loading history...
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="bg-white rounded-2xl shadow-xl p-8 border border-red-200">
-                <div className="flex items-center gap-3 text-red-600">
-                    <AlertCircle className="w-6 h-6" />
-                    <p className="font-semibold">{error}</p>
-                </div>
+            <div className="flex items-center gap-2 text-red-600 text-sm py-2">
+                <AlertCircle className="w-4 h-4" />
+                <span>{error}</span>
             </div>
         );
     }
 
     if (history.length === 0) {
         return (
-            <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-                <div className="text-center">
-                    <History className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500">No history available for this shipment yet.</p>
-                </div>
+            <div className="text-center py-6 text-gray-400 text-sm">
+                <History className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                No additional history available.
             </div>
         );
     }
 
     return (
-        <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-            <div className="flex items-center gap-3 mb-6">
-                <div className="bg-purple-100 p-2 rounded-lg">
-                    <History className="w-6 h-6 text-purple-600" />
-                </div>
-                <h3 className="font-bold text-xl text-gray-900">Shipment History</h3>
+        <div className="mt-4 pt-4 border-t border-gray-100">
+            <div className="flex items-center gap-2 mb-3">
+                <History className="w-4 h-4" style={{color:'var(--brand-primary)'}} />
+                <span className="font-semibold text-gray-900 text-sm">Full Shipment History</span>
             </div>
 
             {/* Timeline View */}
@@ -144,19 +136,19 @@ export default function ShipmentHistory({ shipmentCode }) {
             {/* Alternative: Table View (commented out, can be toggled) */}
             <div className="overflow-x-auto rounded-xl border border-gray-200">
                 <table className="min-w-full">
-                    <thead className="bg-gradient-to-r from-purple-600 to-orange-500 text-white">
+                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
                         <tr>
-                            <th className="p-4 text-left font-semibold">Date & Time</th>
-                            <th className="p-4 text-left font-semibold">Location</th>
-                            <th className="p-4 text-left font-semibold">Status</th>
-                            <th className="p-4 text-left font-semibold">Remarks</th>
+                            <th className="px-4 py-2.5 text-left font-medium">Date & Time</th>
+                            <th className="px-4 py-2.5 text-left font-medium">Location</th>
+                            <th className="px-4 py-2.5 text-left font-medium">Status</th>
+                            <th className="px-4 py-2.5 text-left font-medium">Remarks</th>
                         </tr>
                     </thead>
                     <tbody>
                         {history.map((item, index) => (
                             <tr
                                 key={index}
-                                className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-purple-50 transition`}
+                                className={`border-t ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-50 transition`}
                             >
                                 <td className="p-4 text-gray-900">
                                     <div className="flex items-center gap-2">

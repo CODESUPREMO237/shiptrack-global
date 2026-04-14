@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthGuard from "@/components/AuthGuard";
 import AdminForm from "@/components/AdminForm";
-import { auth } from "@/lib/firebase";
-import { signOut } from "firebase/auth";
+import AdminSecurityPanel from "@/components/AdminSecurityPanel";
 import ChatWidget from "@/components/ChatWidget";
+import { adminFetch } from "@/lib/adminApi";
+import { supabase } from "@/lib/supabaseClient";
 import { 
   Package, 
   LogOut, 
@@ -17,7 +18,8 @@ import {
   MapPin,
   ChevronDown,
   ChevronUp,
-  Mail
+  Mail,
+  ShieldCheck
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -29,7 +31,7 @@ export default function AdminDashboard() {
   const [feedbacks, setFeedbacks] = useState([]);
   const [feedbacksVisible, setFeedbacksVisible] = useState(false);
   const [expandedShipments, setExpandedShipments] = useState({});
-  const [activeTab, setActiveTab] = useState("shipments"); // shipments, create, feedbacks
+  const [activeTab, setActiveTab] = useState("shipments"); // shipments, create, feedbacks, security
 
   const shipmentTypes = ["Truckload", "Less than Truckload"];
   const shipmentModes = ["Land Shipping", "Air Shipping", "Sea Shipping"];
@@ -44,8 +46,9 @@ export default function AdminDashboard() {
   const loadShipments = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/shipments");
+      const res = await adminFetch("/api/shipments");
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load shipments");
       const safeData = data.map((s) => ({
         ...s,
         products: Array.isArray(s.products) ? s.products : [],
@@ -60,7 +63,7 @@ export default function AdminDashboard() {
 
   const loadFeedbacks = async () => {
     try {
-      const res = await fetch("/api/feedbacks");
+      const res = await adminFetch("/api/feedbacks");
       const data = await res.json();
       if (data.success) setFeedbacks(data.data || []);
       else setFeedbacks([]);
@@ -71,7 +74,7 @@ export default function AdminDashboard() {
   };
 
   const handleLogout = async () => {
-    await signOut(auth);
+    await supabase.auth.signOut();
     router.replace("/admin");
   };
 
@@ -85,9 +88,8 @@ export default function AdminDashboard() {
       const payload = { [field]: value };
       const endpoint = field === "admin_comment" ? `/api/tracking/${code}` : `/api/shipments/${code}`;
 
-      const res = await fetch(endpoint, {
+      const res = await adminFetch(endpoint, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
@@ -216,6 +218,17 @@ export default function AdminDashboard() {
                 <MessageSquare className="w-4 h-4" />
                 Feedbacks ({feedbacks.length})
               </button>
+              <button
+                onClick={() => setActiveTab("security")}
+                className={`flex items-center gap-2 px-6 py-3 rounded-t-lg transition duration-200 ${
+                  activeTab === "security"
+                    ? "bg-white text-purple-600 font-semibold"
+                    : "text-white hover:bg-white/10"
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4" />
+                Account Security
+              </button>
             </div>
           </div>
         </div>
@@ -274,6 +287,8 @@ export default function AdminDashboard() {
               )}
             </div>
           )}
+
+          {activeTab === "security" && <AdminSecurityPanel />}
 
           {/* Shipments Tab */}
           {activeTab === "shipments" && (
