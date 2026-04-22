@@ -19,7 +19,9 @@ import {
   ChevronDown,
   ChevronUp,
   Mail,
-  ShieldCheck
+  ShieldCheck,
+  Bell,
+  BellOff
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -34,6 +36,8 @@ export default function AdminDashboard() {
   const [expandedShipments, setExpandedShipments] = useState({});
   const [activeTab, setActiveTab] = useState("shipments");
   const [loadError, setLoadError] = useState(null);
+  const [pushStatus, setPushStatus] = useState("idle"); // idle | subscribing | subscribed | unsupported
+  const [pushSubscription, setPushSubscription] = useState(null);
 
   const shipmentTypes = ["Truckload", "Less than Truckload"];
   const shipmentModes = ["Land Shipping", "Air Shipping", "Sea Shipping"];
@@ -44,6 +48,97 @@ export default function AdminDashboard() {
     loadShipments();
     loadFeedbacks();
   }, []);
+
+  // Check push subscription status on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setPushStatus("unsupported");
+      return;
+    }
+    navigator.serviceWorker.ready.then((reg) => {
+      reg.pushManager.getSubscription().then((sub) => {
+        if (sub) {
+          setPushSubscription(sub);
+          setPushStatus("subscribed");
+        } else {
+          setPushStatus("idle");
+        }
+      });
+    });
+  }, []);
+
+  const enablePushNotifications = async () => {
+    try {
+      setPushStatus("subscribing");
+
+      // Register service worker
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+
+      // Ask for permission
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        showToast("Notification permission denied");
+        setPushStatus("idle");
+        return;
+      }
+
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!vapidKey) {
+        showToast("VAPID key not configured — set NEXT_PUBLIC_VAPID_PUBLIC_KEY");
+        setPushStatus("idle");
+        return;
+      }
+
+      // Convert VAPID public key to Uint8Array
+      const urlBase64ToUint8Array = (base64String) => {
+        const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+        const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+        const rawData = atob(base64);
+        return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+      };
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+      });
+
+      // Save subscription to server
+      const res = await adminFetch("/api/push/subscribe", {
+        method: "POST",
+        body: JSON.stringify({ subscription: sub.toJSON() }),
+      });
+
+      if (!res.ok) throw new Error("Failed to save subscription");
+
+      setPushSubscription(sub);
+      setPushStatus("subscribed");
+      showToast("✅ Push notifications enabled! You'll be notified on this device when visitors arrive.");
+    } catch (err) {
+      console.error("Push subscribe error:", err);
+      showToast("Failed to enable notifications: " + err.message);
+      setPushStatus("idle");
+    }
+  };
+
+  const disablePushNotifications = async () => {
+    try {
+      if (pushSubscription) {
+        await adminFetch("/api/push/subscribe", {
+          method: "DELETE",
+          body: JSON.stringify({ endpoint: pushSubscription.endpoint }),
+        });
+        await pushSubscription.unsubscribe();
+      }
+      setPushSubscription(null);
+      setPushStatus("idle");
+      showToast("Push notifications disabled.");
+    } catch (err) {
+      console.error("Push unsubscribe error:", err);
+      showToast("Failed to disable notifications");
+    }
+  };
 
   const loadShipments = async () => {
     try {
@@ -202,13 +297,43 @@ export default function AdminDashboard() {
                   <p className="text-purple-100 text-sm">Manage shipments and track operations</p>
                 </div>
               </div>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-2 rounded-lg transition duration-200"
-              >
-                <LogOut className="w-4 h-4" />
-                Logout
-              </button>
+              <div className="flex items-center gap-3">
+                {/* Push Notification Toggle */}
+                {pushStatus !== "unsupported" && (
+                  <button
+                    onClick={pushStatus === "subscribed" ? disablePushNotifications : enablePushNotifications}
+                    disabled={pushStatus === "subscribing"}
+                    title={pushStatus === "subscribed" ? "Notifications ON — click to disable" : "Enable visitor notifications on this device"}
+                    className={`flex items-center gap-2 backdrop-blur-sm px-4 py-2 rounded-lg transition duration-200 ${
+                      pushStatus === "subscribed"
+                        ? "bg-green-400/30 hover:bg-green-400/50 text-white border border-green-300/50"
+                        : pushStatus === "subscribing"
+                        ? "bg-white/10 text-white/60 cursor-wait"
+                        : "bg-white/20 hover:bg-white/30 text-white"
+                    }`}
+                  >
+                    {pushStatus === "subscribed" ? (
+                      <Bell className="w-4 h-4 fill-current" />
+                    ) : (
+                      <BellOff className="w-4 h-4" />
+                    )}
+                    <span className="hidden md:inline">
+                      {pushStatus === "subscribed"
+                        ? "Notifications ON"
+                        : pushStatus === "subscribing"
+                        ? "Enabling…"
+                        : "Enable Alerts"}
+                    </span>
+                  </button>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-2 rounded-lg transition duration-200"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </button>
+              </div>
             </div>
 
             {/* Tab Navigation */}

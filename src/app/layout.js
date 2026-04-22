@@ -1,6 +1,7 @@
 import './globals.css'
 import Footer from '@/components/Footer';
 import CookieConsent from '@/components/CookieConsent';
+import VisitorTracker from '@/components/VisitorTracker';
 
 export const metadata = {
   title: 'ShipTrack Global — Worldwide Shipping & Logistics',
@@ -19,6 +20,7 @@ export default function RootLayout({ children }) {
         
       {/* 🔑 Fix for Hydration Mismatch Error caused by browser extensions */}
       <body suppressHydrationWarning={true}>
+        <VisitorTracker />
         {children}
         <Footer />
         <CookieConsent />
