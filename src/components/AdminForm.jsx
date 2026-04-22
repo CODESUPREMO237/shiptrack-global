@@ -85,28 +85,17 @@ function calculateBaseShipping(weight, shipmentMode) {
 function calculateTotalCost(form, productsArray) {
   const declaredValue = parseFloat(form.declared_value) || 0;
   
-  // Calculate total weight from products
   const totalWeight = productsArray.reduce((sum, p) => {
     return sum + (parseFloat(p.weight_kg) || 0) * (parseInt(p.qty) || 1);
   }, 0);
   
-  // Extract country from city string (format: "City, Country")
   const destCountry = form.destCity ? form.destCity.split(', ').pop() : '';
   const destCityName = form.destCity ? form.destCity.split(', ')[0] : '';
   
-  // 1️⃣ Calculate tax
   const taxAmount = declaredValue * getTaxRate(destCityName, destCountry);
-  
-  // 2️⃣ Base shipping
   const baseShipping = calculateBaseShipping(totalWeight, form.shipment_mode);
-  
-  // 3️⃣ Insurance fee (1% of declared value if selected)
   const insuranceFee = form.insurance ? declaredValue * 0.01 : 0;
-  
-  // 4️⃣ Special handling fee
   const handlingFee = (form.special_handling?.length || 0) * 50;
-  
-  // 5️⃣ Total cost
   const totalCost = baseShipping + insuranceFee + handlingFee + taxAmount;
   
   return {
@@ -114,6 +103,51 @@ function calculateTotalCost(form, productsArray) {
     totalCost: totalCost.toFixed(2)
   };
 }
+
+const EMPTY_FORM = {
+  name: "",
+  agency: "",
+  originCity: "",
+  destCity: "",
+  origin_lat: null,
+  origin_lng: null,
+  dest_lat: null,
+  dest_lng: null,
+  estimated_hours: "",
+  shipper_name: "",
+  shipper_phone: "",
+  shipper_address: "",
+  receiver_name: "",
+  receiver_phone: "",
+  receiver_email: "",
+  receiver_address: "",
+  shipment_type: "Truckload",
+  shipment_mode: "Land Shipping",
+  payment_mode: "PAYPAL",
+  status: "In Transit",
+  location: "",
+  total_cost: "",
+  currency: "USD",
+  payment_status: "Pending",
+  tax_amount: "",
+  insurance: false,
+  insurance_value: "",
+  declared_value: "",
+  pickup_datetime: "",
+  expected_delivery_datetime: "",
+  delivery_datetime: "",
+  delivery_signature_required: false,
+  shipment_category: "General",
+  special_handling: [],
+  hs_code: "",
+  country_of_manufacture: "",
+  customs_declaration_description: "",
+  incoterm: "EXW",
+  admin_comment: "",
+  reason_for_status_change: ""
+};
+
+const EMPTY_PRODUCT = { piece_type: "", product: "", description: "", qty: 1, length_cm: 0, width_cm: 0, height_cm: 0, weight_kg: 0 };
 
 // ============================================
 // MAIN COMPONENT
@@ -126,78 +160,23 @@ export default function AdminForm({ onSuccess }) {
   const [destSearch, setDestSearch] = useState("");
   const [showOriginDropdown, setShowOriginDropdown] = useState(false);
   const [showDestDropdown, setShowDestDropdown] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const [form, setForm] = useState({
-    // Basic Info
-    name: "",
-    agency: "",
-    originCity: "",
-    destCity: "",
-    origin_lat: null,
-    origin_lng: null,
-    dest_lat: null,
-    dest_lng: null,
-    estimated_hours: "",
-    
-    // Shipper/Receiver
-    shipper_name: "",
-    shipper_phone: "",
-    shipper_address: "",
-    receiver_name: "",
-    receiver_phone: "",
-    receiver_email: "",
-    receiver_address: "",
-    
-    // Shipment Type
-    shipment_type: "Truckload",
-    shipment_mode: "Land Shipping",
+    ...EMPTY_FORM,
     carrier_ref: generateCarrierRef(),
     client_id: generateClientId(),
     current_vehicle_id: generateVehicleId(),
     current_driver_id: generateDriverId(),
-    payment_mode: "PAYPAL",
-    status: "In Transit",
-    location: "",
-    
-    // Finance & Pricing
-    total_cost: "",
-    currency: "USD",
-    payment_status: "Pending",
-    tax_amount: "",
-    insurance: false,
-    insurance_value: "",
-    declared_value: "",
-    
-    // Delivery
-    pickup_datetime: "",
-    expected_delivery_datetime: "",
-    delivery_datetime: "",
-    delivery_signature_required: false,
-    
-    // Weight & Category
-    shipment_category: "General",
-    special_handling: [],
-    
-    // Customs (for international)
-    hs_code: "",
-    country_of_manufacture: "",
-    customs_declaration_description: "",
-    incoterm: "EXW",
-    
-    // Admin
-    admin_comment: "",
-    reason_for_status_change: ""
   });
 
-  const [products, setProducts] = useState([
-    { piece_type: "", product: "", description: "", qty: 1, length_cm: 0, width_cm: 0, height_cm: 0, weight_kg: 0 },
-  ]);
+  const [products, setProducts] = useState([{ ...EMPTY_PRODUCT }]);
 
   const [specialHandlingOptions] = useState([
     "Fragile", "Perishable", "Hazardous", "Temperature Controlled", "High Value"
   ]);
 
-  // Check if shipment is international
   const isInternational = useMemo(() => {
     if (!form.originCity || !form.destCity) return false;
     const originCountry = form.originCity.split(', ').pop();
@@ -205,7 +184,6 @@ export default function AdminForm({ onSuccess }) {
     return originCountry !== destCountry;
   }, [form.originCity, form.destCity]);
 
-  // Auto-calculate total weight and volumetric weight
   const calculatedWeights = useMemo(() => {
     const totalWeight = products.reduce((sum, p) => sum + (parseFloat(p.weight_kg) || 0) * (parseInt(p.qty) || 1), 0);
     const volumetricWeight = products.reduce((sum, p) => {
@@ -215,7 +193,6 @@ export default function AdminForm({ onSuccess }) {
     return { totalWeight: totalWeight.toFixed(2), volumetricWeight: volumetricWeight.toFixed(2) };
   }, [products]);
 
-  // Load cities data
   useEffect(() => {
     if (!citiesLoaded) {
       fetch('/cities.json')
@@ -230,7 +207,6 @@ export default function AdminForm({ onSuccess }) {
     }
   }, [citiesLoaded]);
 
-  // Filter cities based on search
   const filteredOriginCities = useMemo(() => {
     if (!originSearch || originSearch.length < 2) return [];
     const searchLower = originSearch.toLowerCase();
@@ -261,15 +237,9 @@ export default function AdminForm({ onSuccess }) {
       [name]: type === 'checkbox' ? checked : value
     };
     
-    // Recalculate costs when relevant fields change
     if (['declared_value', 'insurance', 'destCity', 'shipment_mode'].includes(name)) {
       const { taxAmount, totalCost } = calculateTotalCost(updatedForm, products);
-      
-      setForm({
-        ...updatedForm,
-        tax_amount: taxAmount,
-        total_cost: totalCost
-      });
+      setForm({ ...updatedForm, tax_amount: taxAmount, total_cost: totalCost });
     } else {
       setForm(updatedForm);
     }
@@ -283,12 +253,7 @@ export default function AdminForm({ onSuccess }) {
     
     const updatedForm = { ...form, special_handling: updated };
     const { taxAmount, totalCost } = calculateTotalCost(updatedForm, products);
-    
-    setForm({
-      ...updatedForm,
-      tax_amount: taxAmount,
-      total_cost: totalCost
-    });
+    setForm({ ...updatedForm, tax_amount: taxAmount, total_cost: totalCost });
   };
 
   const handleProductChange = (index, field, value) => {
@@ -296,35 +261,21 @@ export default function AdminForm({ onSuccess }) {
     updated[index][field] = value;
     setProducts(updated);
     
-    // Recalculate costs when weight or quantity changes
     if (field === 'weight_kg' || field === 'qty') {
       const { taxAmount, totalCost } = calculateTotalCost(form, updated);
-      setForm({
-        ...form,
-        tax_amount: taxAmount,
-        total_cost: totalCost
-      });
+      setForm({ ...form, tax_amount: taxAmount, total_cost: totalCost });
     }
   };
 
   const addProduct = () => {
-    setProducts([
-      ...products,
-      { piece_type: "", product: "", description: "", qty: 1, length_cm: 0, width_cm: 0, height_cm: 0, weight_kg: 0 },
-    ]);
+    setProducts([...products, { ...EMPTY_PRODUCT }]);
   };
 
   const removeProduct = (index) => {
     const updated = products.filter((_, i) => i !== index);
     setProducts(updated);
-    
-    // Recalculate costs after removing product
     const { taxAmount, totalCost } = calculateTotalCost(form, updated);
-    setForm({
-      ...form,
-      tax_amount: taxAmount,
-      total_cost: totalCost
-    });
+    setForm({ ...form, tax_amount: taxAmount, total_cost: totalCost });
   };
 
   const selectOriginCity = (city) => {
@@ -345,118 +296,99 @@ export default function AdminForm({ onSuccess }) {
       dest_lat: parseFloat(city.lat),
       dest_lng: parseFloat(city.lng)
     };
-    
-    // Recalculate costs with new destination
     const { taxAmount, totalCost } = calculateTotalCost(updatedForm, products);
-    
-    setForm({
-      ...updatedForm,
-      tax_amount: taxAmount,
-      total_cost: totalCost
-    });
+    setForm({ ...updatedForm, tax_amount: taxAmount, total_cost: totalCost });
     setDestSearch(`${city.name}, ${city.country}`);
     setShowDestDropdown(false);
   };
 
   const handleSubmit = async () => {
-    // Validation
-    if (!form.name || !form.agency || !form.originCity || !form.destCity) {
-      alert("Please fill in all required fields");
+    setSubmitError("");
+
+    // Client-side validation
+    if (!form.name.trim()) {
+      setSubmitError("Shipment Name is required.");
       return;
     }
-
+    if (!form.agency.trim()) {
+      setSubmitError("Agency is required.");
+      return;
+    }
+    if (!form.originCity) {
+      setSubmitError("Please select an Origin City.");
+      return;
+    }
+    if (!form.destCity) {
+      setSubmitError("Please select a Destination City.");
+      return;
+    }
+    if (!form.estimated_hours) {
+      setSubmitError("Estimated Hours is required.");
+      return;
+    }
     if (isInternational && (!form.hs_code || !form.incoterm)) {
-      alert("International shipments require HS Code and Incoterm");
+      setSubmitError("International shipments require HS Code and Incoterm.");
       return;
     }
-
     if (form.insurance && !form.insurance_value) {
-      alert("Insurance value is required when insurance is enabled");
+      setSubmitError("Insurance value is required when insurance is enabled.");
       return;
     }
-
     if (parseFloat(form.declared_value) > 5 && !form.insurance) {
-      alert("Insurance is required for shipments with declared value over $5");
+      setSubmitError("Insurance is required for shipments with declared value over $5.");
       return;
     }
 
-    const payload = {
-      ...form,
-      products,
-      current_lat: form.origin_lat,
-      current_lng: form.origin_lng,
-      total_weight: calculatedWeights.totalWeight,
-      volumetric_weight: calculatedWeights.volumetricWeight,
-      tracking_history: [{
-        event: "Shipment Created",
-        location: form.location || form.originCity,
-        timestamp: new Date().toISOString(),
-        reason: form.reason_for_status_change || "Initial shipment creation"
-      }]
-    };
+    setSubmitting(true);
 
-    const res = await adminFetch("/api/shipments", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+    try {
+      const payload = {
+        ...form,
+        products,
+        current_lat: form.origin_lat,
+        current_lng: form.origin_lng,
+        total_weight: calculatedWeights.totalWeight,
+        volumetric_weight: calculatedWeights.volumetricWeight,
+        tracking_history: [{
+          event: "Shipment Created",
+          location: form.location || form.originCity,
+          timestamp: new Date().toISOString(),
+          reason: form.reason_for_status_change || "Initial shipment creation",
+          status: form.status || "In Transit",
+        }]
+      };
 
-    if (!res.ok) {
-      alert("Failed to create shipment");
-      return;
+      const res = await adminFetch("/api/shipments", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || data.details || `Server error (${res.status})`);
+      }
+
+      // Reset form on success
+      setForm({
+        ...EMPTY_FORM,
+        carrier_ref: generateCarrierRef(),
+        client_id: generateClientId(),
+        current_vehicle_id: generateVehicleId(),
+        current_driver_id: generateDriverId(),
+      });
+      setOriginSearch("");
+      setDestSearch("");
+      setProducts([{ ...EMPTY_PRODUCT }]);
+      setSubmitError("");
+
+      onSuccess?.();
+    } catch (err) {
+      console.error("Create shipment error:", err);
+      setSubmitError(err.message || "An unexpected error occurred. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
-
-    // Reset form
-    setForm({
-      name: "",
-      agency: "",
-      originCity: "",
-      destCity: "",
-      origin_lat: null,
-      origin_lng: null,
-      dest_lat: null,
-      dest_lng: null,
-      estimated_hours: "",
-      shipper_name: "",
-      shipper_phone: "",
-      shipper_address: "",
-      receiver_name: "",
-      receiver_phone: "",
-      receiver_email: "",
-      receiver_address: "",
-      shipment_type: "Truckload",
-      shipment_mode: "Land Shipping",
-      carrier_ref: generateCarrierRef(),
-      client_id: generateClientId(),
-      current_vehicle_id: generateVehicleId(),
-      current_driver_id: generateDriverId(),
-      payment_mode: "PAYPAL",
-      status: "In Transit",
-      location: "",
-      total_cost: "",
-      currency: "USD",
-      payment_status: "Pending",
-      tax_amount: "",
-      insurance: false,
-      insurance_value: "",
-      declared_value: "",
-      pickup_datetime: "",
-      expected_delivery_datetime: "",
-      delivery_datetime: "",
-      delivery_signature_required: false,
-      shipment_category: "General",
-      special_handling: [],
-      hs_code: "",
-      country_of_manufacture: "",
-      customs_declaration_description: "",
-      incoterm: "EXW",
-      admin_comment: "",
-      reason_for_status_change: ""
-    });
-    setOriginSearch("");
-    setDestSearch("");
-    setProducts([{ piece_type: "", product: "", description: "", qty: 1, length_cm: 0, width_cm: 0, height_cm: 0, weight_kg: 0 }]);
-
-    onSuccess?.();
   };
 
   const statusColors = {
@@ -1271,14 +1203,27 @@ export default function AdminForm({ onSuccess }) {
         <p className="text-sm text-gray-500 mt-2">These notes are for internal use and will be visible to customers.</p>
       </div>
 
+      {/* Error message */}
+      {submitError && (
+        <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4">
+          <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-red-800 text-sm">Failed to create shipment</p>
+            <p className="text-red-700 text-sm mt-1">{submitError}</p>
+          </div>
+        </div>
+      )}
+
       {/* Submit Button */}
       <div className="flex justify-end gap-4">
         <button 
-          onClick={handleSubmit} 
-          className="bg-gradient-to-r from-purple-600 to-orange-500 text-white px-8 py-4 rounded-xl hover:shadow-2xl transition duration-300 transform hover:scale-105 font-bold text-lg flex items-center gap-2"
+          type="button"
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="bg-gradient-to-r from-purple-600 to-orange-500 text-white px-8 py-4 rounded-xl hover:shadow-2xl transition duration-300 transform hover:scale-105 font-bold text-lg flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none disabled:hover:shadow-none"
         >
           <Package className="w-5 h-5" />
-          Create Shipment
+          {submitting ? "Creating Shipment..." : "Create Shipment"}
         </button>
       </div>
 
@@ -1287,12 +1232,6 @@ export default function AdminForm({ onSuccess }) {
         <div className="fixed bottom-4 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
           <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
           Loading 130,000+ cities...
-        </div>
-      )}
-
-      {citiesLoaded && (
-        <div className="fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg animate-pulse">
-          ✓ Cities loaded successfully!
         </div>
       )}
     </div>
