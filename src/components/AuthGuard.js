@@ -11,28 +11,34 @@ export default function AuthGuard({ children }) {
     let active = true;
 
     const verify = async () => {
-      try {
-        // Use getSession() — reads from local storage instantly, no network race.
-        // The login page (AdminLoginCard) already verified isAdminUser() before
-        // redirecting here, so we only need to confirm a valid session exists.
-        const { data } = await supabase.auth.getSession();
+      // Supabase on mobile can take a moment to write the session to storage
+      // after login. Retry up to 5 times with 500ms gaps before giving up.
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          const { data } = await supabase.auth.getSession();
 
-        if (!active) return;
+          if (!active) return;
 
-        if (!data.session) {
-          router.replace("/admin");
-          return;
+          if (data.session) {
+            // Valid session found — let the user through
+            setChecking(false);
+            return;
+          }
+        } catch {
+          // ignore and retry
         }
 
-        setChecking(false);
-      } catch {
-        if (active) router.replace("/admin");
+        // Wait 500ms before next attempt (total max wait: 2.5s)
+        await new Promise((r) => setTimeout(r, 500));
       }
+
+      // All attempts failed — send back to login
+      if (active) router.replace("/admin");
     };
 
     verify();
 
-    // Listen for sign-out (e.g. from another tab)
+    // Listen for explicit sign-out
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return;
       if (event === "SIGNED_OUT" || !session) {
