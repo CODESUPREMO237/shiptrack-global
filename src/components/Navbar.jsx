@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import CustomerAccountMenu from "@/components/CustomerAccountMenu";
+import ReviewToast from "@/components/ReviewToast";
 
 // Navigation Link Component
 const NavLink = ({ href, children, onClick }) => (
@@ -115,6 +116,7 @@ export default function Navbar({ showFullNav = true }) {
 
   return (
     <header className="sticky top-0 z-50 bg-white shadow-sm">
+      <ReviewToast />
       {/* Utility bar — top strip */}
       <div className="bg-gray-900 text-gray-300 text-xs hidden md:block">
         <div className="container mx-auto px-4 py-1.5 flex justify-between items-center">

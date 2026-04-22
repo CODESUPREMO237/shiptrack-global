@@ -2,8 +2,9 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
-// Generate or retrieve a unique user ID
+// Generate or retrieve a unique user ID (SSR-safe)
 function getUserId() {
+  if (typeof window === 'undefined') return null; // Guard against SSR
   let userId = localStorage.getItem('chat_user_id');
   if (!userId) {
     userId = 'user_' + Math.random().toString(36).substr(2, 9) + Date.now();
@@ -309,7 +310,7 @@ export default function ChatWidget({ isAdmin = false, selectedUserId = null }) {
     setMessages([]);
   };
 
-  const handleKeyPress = (e) => {
+  const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
@@ -347,7 +348,7 @@ export default function ChatWidget({ isAdmin = false, selectedUserId = null }) {
 
       {/* Chat window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 w-96 h-[32rem] bg-white rounded-2xl shadow-2xl flex flex-col z-50 border border-gray-200">
+        <div className="fixed bottom-24 right-0 left-0 mx-3 sm:left-auto sm:mx-0 sm:right-6 sm:w-96 h-[32rem] bg-white rounded-2xl shadow-2xl flex flex-col z-50 border border-gray-200">
           
           {/* Show user list for admin */}
           {isAdmin && showUserList ? (
@@ -610,7 +611,7 @@ export default function ChatWidget({ isAdmin = false, selectedUserId = null }) {
                     placeholder="Type a message..."
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
+                    onKeyDown={handleKeyDown}
                      className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg
                              text-gray-900 text-sm placeholder:text-gray-500
                              focus:ring-2 focus:ring-green-500 focus:border-green-500

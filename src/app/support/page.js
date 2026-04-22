@@ -32,7 +32,7 @@ export default function Support() {
               href="mailto:support@shiptrackglobal.com"
               className="text-purple-600 hover:text-purple-700 font-semibold"
             >
-              shiptrackglobal@gmail.com
+              shiptrackglobal585@gmail.com
 
             </a>
           </div>
