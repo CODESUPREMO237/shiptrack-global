@@ -4,27 +4,72 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
+// Parse user agent into human-readable device/browser/OS
+function parseUA(ua) {
+  // Device type
+  let device = '🖥️ Desktop';
+  if (/iphone/i.test(ua)) device = '📱 iPhone';
+  else if (/ipad/i.test(ua)) device = '📱 iPad';
+  else if (/android.*mobile/i.test(ua)) device = '📱 Android Phone';
+  else if (/android/i.test(ua)) device = '📱 Android Tablet';
+  else if (/macintosh/i.test(ua)) device = '💻 Mac';
+  else if (/windows/i.test(ua)) device = '🖥️ Windows PC';
+  else if (/linux/i.test(ua)) device = '🖥️ Linux';
+
+  // OS
+  let os = '';
+  if (/iphone os ([\d_]+)/i.test(ua)) os = 'iOS ' + ua.match(/iphone os ([\d_]+)/i)[1].replace(/_/g, '.');
+  else if (/ipad.*os ([\d_]+)/i.test(ua)) os = 'iPadOS ' + ua.match(/os ([\d_]+)/i)[1].replace(/_/g, '.');
+  else if (/android ([\d.]+)/i.test(ua)) os = 'Android ' + ua.match(/android ([\d.]+)/i)[1];
+  else if (/windows nt ([\d.]+)/i.test(ua)) {
+    const v = ua.match(/windows nt ([\d.]+)/i)[1];
+    const map = { '10.0': '10/11', '6.3': '8.1', '6.2': '8', '6.1': '7' };
+    os = 'Windows ' + (map[v] || v);
+  } else if (/mac os x ([\d_]+)/i.test(ua)) os = 'macOS ' + ua.match(/mac os x ([\d_]+)/i)[1].replace(/_/g, '.');
+
+  // Browser
+  let browser = '';
+  if (/edg\//i.test(ua)) browser = 'Edge';
+  else if (/opr\//i.test(ua)) browser = 'Opera';
+  else if (/chrome\/([\d.]+)/i.test(ua)) browser = 'Chrome ' + ua.match(/chrome\/([\d.]+)/i)[1].split('.')[0];
+  else if (/firefox\/([\d.]+)/i.test(ua)) browser = 'Firefox ' + ua.match(/firefox\/([\d.]+)/i)[1].split('.')[0];
+  else if (/safari\/([\d.]+)/i.test(ua) && !/chrome/i.test(ua)) browser = 'Safari';
+  else if (/samsungbrowser/i.test(ua)) browser = 'Samsung Browser';
+
+  return { device, os, browser };
+}
+
+// Get geo info from ip-api.com (free, no key needed)
+async function getGeoInfo(ip) {
+  try {
+    if (!ip || ip === 'unknown' || ip === '127.0.0.1' || ip.startsWith('192.168') || ip.startsWith('10.')) {
+      return null;
+    }
+    const res = await fetch(
+      `http://ip-api.com/json/${ip}?fields=status,country,countryCode,regionName,city,lat,lon,isp,org`,
+      { signal: AbortSignal.timeout(3000) }
+    );
+    const data = await res.json();
+    if (data.status !== 'success') return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 async function sendTelegramToAll(message) {
   if (!TELEGRAM_BOT_TOKEN || !supabaseAdmin) return;
-
   try {
     const { data: subs } = await supabaseAdmin
       .from('telegram_subscriptions')
       .select('chat_id');
-
     if (!subs || subs.length === 0) return;
-
-    // Send to all subscribers in parallel
     await Promise.allSettled(
       subs.map((row) =>
         fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: row.chat_id,
-            text: message,
-            parse_mode: 'HTML',
-          }),
+          body: JSON.stringify({ chat_id: row.chat_id, text: message, parse_mode: 'HTML' }),
         })
       )
     );
@@ -39,12 +84,7 @@ async function sendWebPush(title, message, baseUrl, secret) {
     await fetch(`${baseUrl}/api/push/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        secret,
-        title,
-        message,
-        url: '/admin/dashboard',
-      }),
+      body: JSON.stringify({ secret, title, message, url: '/admin/dashboard' }),
     });
   } catch (err) {
     console.error('Web push notify error:', err);
@@ -60,27 +100,50 @@ export async function POST(req) {
     const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
     const ua = req.headers.get('user-agent') || 'unknown';
 
-    // Skip bot/crawler traffic
-    if (/bot|crawl|spider|slurp|facebookexternalhit|WhatsApp|Googlebot/i.test(ua)) {
+    // Skip bots/crawlers
+    if (/bot|crawl|spider|slurp|facebookexternalhit|WhatsApp|Googlebot|bingbot|yandex/i.test(ua)) {
       return NextResponse.json({ ok: true });
     }
 
     const pageLabel = page || '/';
-    const shortUA = ua.length > 80 ? ua.slice(0, 77) + '…' : ua;
+    const { device, os, browser } = parseUA(ua);
+
+    // Fetch geo in parallel with everything else
+    const geo = await getGeoInfo(ip);
+
+    // Build location string
+    let locationLine = `🌐 IP: <code>${ip}</code>`;
+    if (geo) {
+      const flag = geo.countryCode
+        ? geo.countryCode.toUpperCase().replace(/./g, (c) => String.fromCodePoint(127397 + c.charCodeAt(0)))
+        : '';
+      const place = [geo.city, geo.regionName, geo.country].filter(Boolean).join(', ');
+      const mapLink = geo.lat && geo.lon
+        ? `\n🗺️ <a href="https://www.google.com/maps?q=${geo.lat},${geo.lon}">View on Map</a>`
+        : '';
+      locationLine =
+        `🌍 ${flag} <b>${place}</b>${mapLink}\n` +
+        `🌐 IP: <code>${ip}</code>\n` +
+        `📡 ISP: ${geo.isp || geo.org || 'unknown'}`;
+    }
+
+    const deviceLine = [device, os, browser].filter(Boolean).join(' · ');
     const refLine = referrer ? `\n🔗 From: <code>${referrer}</code>` : '';
 
     const telegramMsg =
       `👁️ <b>New Visitor — ShipTrack</b>\n` +
-      `📍 Page: <code>${pageLabel}</code>\n` +
-      `🌐 IP: <code>${ip}</code>\n` +
-      `📱 ${shortUA}${refLine}`;
+      `━━━━━━━━━━━━━━━━\n` +
+      `📄 Page: <code>${pageLabel}</code>\n` +
+      `${locationLine}\n` +
+      `📱 ${deviceLine}` +
+      `${refLine}`;
 
-    const pushMessage = `${pageLabel} · ${ip} · ${shortUA}`;
+    const pushMessage = `${pageLabel} · ${geo ? geo.city + ', ' + geo.country : ip} · ${device}`;
 
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
     const secret = process.env.PUSH_INTERNAL_SECRET;
 
-    // Fire both simultaneously — fire and forget
+    // Fire both simultaneously
     Promise.all([
       sendTelegramToAll(telegramMsg),
       sendWebPush('👁️ New Visitor — ShipTrack', pushMessage, baseUrl, secret),
