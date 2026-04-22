@@ -43,6 +43,32 @@ export async function adminFetch(input, init = {}, timeoutMs = 30000) {
 
   try {
     const response = await fetch(input, { ...init, headers, signal: controller.signal });
+
+    // If token expired (401), clear cached token and retry once with a fresh session
+    if (response.status === 401) {
+      clearTimeout(timer);
+      try { sessionStorage.removeItem("admin_access_token"); } catch {}
+
+      // Force Supabase to refresh the session
+      const { data: refreshData } = await supabase.auth.refreshSession();
+      const freshToken = refreshData?.session?.access_token;
+      if (!freshToken) throw new Error("Session expired. Please sign in again.");
+
+      storeAdminToken(freshToken);
+      const retryHeaders = new Headers(init.headers || {});
+      retryHeaders.set("Authorization", `Bearer ${freshToken}`);
+      if (!retryHeaders.has("Content-Type") && init.body) {
+        retryHeaders.set("Content-Type", "application/json");
+      }
+      const retryController = new AbortController();
+      const retryTimer = setTimeout(() => retryController.abort(), timeoutMs);
+      try {
+        return await fetch(input, { ...init, headers: retryHeaders, signal: retryController.signal });
+      } finally {
+        clearTimeout(retryTimer);
+      }
+    }
+
     return response;
   } catch (err) {
     if (err.name === "AbortError") throw new Error("Request timed out. Please check your connection.");

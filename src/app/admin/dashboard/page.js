@@ -52,6 +52,15 @@ export default function AdminDashboard() {
   // Check push subscription status on mount
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    // Detect iOS Safari (doesn't support Web Push outside of PWA/home screen)
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isStandalone = window.navigator.standalone === true; // true = installed as PWA
+    if (isIOS && !isStandalone) {
+      setPushStatus("ios-browser");
+      return;
+    }
+
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
       setPushStatus("unsupported");
       return;
@@ -299,7 +308,13 @@ export default function AdminDashboard() {
               </div>
               <div className="flex items-center gap-3">
                 {/* Push Notification Toggle */}
-                {pushStatus !== "unsupported" && (
+                {pushStatus === "ios-browser" ? (
+                  <div className="flex items-center gap-2 bg-yellow-400/30 border border-yellow-300/50 backdrop-blur-sm px-4 py-2 rounded-lg text-white text-sm">
+                    <Bell className="w-4 h-4 shrink-0" />
+                    <span className="hidden md:inline">Add to Home Screen for alerts</span>
+                    <span className="md:hidden">iOS: Add to Home Screen</span>
+                  </div>
+                ) : pushStatus !== "unsupported" && (
                   <button
                     onClick={pushStatus === "subscribed" ? disablePushNotifications : enablePushNotifications}
                     disabled={pushStatus === "subscribing"}
