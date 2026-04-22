@@ -47,6 +47,18 @@ export default function AdminDashboard() {
   useEffect(() => {
     loadShipments();
     loadFeedbacks();
+
+    // Safety net: if loading is still true after 20s, force it off with an error
+    const timeout = setTimeout(() => {
+      setLoading((prev) => {
+        if (prev) {
+          setLoadError("Loading timed out. Please check your connection and retry.");
+          return false;
+        }
+        return prev;
+      });
+    }, 20000);
+    return () => clearTimeout(timeout);
   }, []);
 
   // Check push subscription status on mount
@@ -152,7 +164,14 @@ export default function AdminDashboard() {
   const loadShipments = async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       const res = await adminFetch("/api/shipments");
+      // If session is fully expired and couldn't be refreshed, send to login
+      if (res.status === 401) {
+        clearAdminToken();
+        router.replace("/admin");
+        return;
+      }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load shipments");
       const safeData = data.map((s) => ({

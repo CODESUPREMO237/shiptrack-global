@@ -30,50 +30,60 @@ export async function getAdminAccessToken() {
   throw new Error("Admin session not found. Please sign in again.");
 }
 
-export async function adminFetch(input, init = {}, timeoutMs = 30000) {
-  const token = await getAdminAccessToken();
-  const headers = new Headers(init.headers || {});
-  headers.set("Authorization", `Bearer ${token}`);
-  if (!headers.has("Content-Type") && init.body) {
-    headers.set("Content-Type", "application/json");
+export async function adminFetch(input, init = {}, timeoutMs = 15000) {
+  const makeRequest = async (token) => {
+    const headers = new Headers(init.headers || {});
+    headers.set("Authorization", `Bearer ${token}`);
+    if (!headers.has("Content-Type") && init.body) {
+      headers.set("Content-Type", "application/json");
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(input, { ...init, headers, signal: controller.signal });
+    } catch (err) {
+      if (err.name === "AbortError") throw new Error("Request timed out. Please check your connection.");
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  // First attempt with cached/current token
+  let token;
+  try {
+    token = await getAdminAccessToken();
+  } catch {
+    throw new Error("Session expired. Please sign in again.");
   }
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const response = await makeRequest(token);
 
-  try {
-    const response = await fetch(input, { ...init, headers, signal: controller.signal });
+  // On 401, clear stale token and try to refresh session once
+  if (response.status === 401) {
+    try { sessionStorage.removeItem(TOKEN_KEY); } catch {}
 
-    // If token expired (401), clear cached token and retry once with a fresh session
-    if (response.status === 401) {
-      clearTimeout(timer);
-      try { sessionStorage.removeItem("admin_access_token"); } catch {}
-
-      // Force Supabase to refresh the session
-      const { data: refreshData } = await supabase.auth.refreshSession();
-      const freshToken = refreshData?.session?.access_token;
-      if (!freshToken) throw new Error("Session expired. Please sign in again.");
-
-      storeAdminToken(freshToken);
-      const retryHeaders = new Headers(init.headers || {});
-      retryHeaders.set("Authorization", `Bearer ${freshToken}`);
-      if (!retryHeaders.has("Content-Type") && init.body) {
-        retryHeaders.set("Content-Type", "application/json");
-      }
-      const retryController = new AbortController();
-      const retryTimer = setTimeout(() => retryController.abort(), timeoutMs);
-      try {
-        return await fetch(input, { ...init, headers: retryHeaders, signal: retryController.signal });
-      } finally {
-        clearTimeout(retryTimer);
-      }
+    let freshToken = null;
+    try {
+      // Try refresh with a 10s timeout
+      const refreshPromise = supabase.auth.refreshSession();
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Token refresh timed out")), 10000)
+      );
+      const { data: refreshData } = await Promise.race([refreshPromise, timeoutPromise]);
+      freshToken = refreshData?.session?.access_token ?? null;
+    } catch {
+      freshToken = null;
     }
 
-    return response;
-  } catch (err) {
-    if (err.name === "AbortError") throw new Error("Request timed out. Please check your connection.");
-    throw err;
-  } finally {
-    clearTimeout(timer);
+    if (!freshToken) {
+      // Can't refresh — return the 401 so the caller can show a proper error
+      return response;
+    }
+
+    storeAdminToken(freshToken);
+    return makeRequest(freshToken);
   }
+
+  return response;
 }
