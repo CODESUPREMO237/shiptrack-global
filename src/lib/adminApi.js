@@ -1,19 +1,15 @@
 import { supabase } from "@/lib/supabaseClient";
 
 export async function getAdminAccessToken() {
-  const { data, error } = await supabase.auth.getSession();
-
-  if (error) {
-    throw new Error(error.message || "Unable to read the current admin session.");
+  // Retry up to 6 times (3 seconds total) to get the session token.
+  // On mobile, Supabase may not have read the token from storage yet.
+  for (let i = 0; i < 6; i++) {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (token) return token;
+    await new Promise((r) => setTimeout(r, 500));
   }
-
-  const token = data.session?.access_token;
-
-  if (!token) {
-    throw new Error("Admin session not found. Please sign in again.");
-  }
-
-  return token;
+  throw new Error("Admin session not found. Please sign in again.");
 }
 
 export async function adminFetch(input, init = {}, timeoutMs = 30000) {
@@ -26,7 +22,6 @@ export async function adminFetch(input, init = {}, timeoutMs = 30000) {
     headers.set("Content-Type", "application/json");
   }
 
-  // Abort after timeoutMs (default 30 seconds) so the UI never hangs forever
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 

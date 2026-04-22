@@ -31,7 +31,8 @@ export default function AdminDashboard() {
   const [feedbacks, setFeedbacks] = useState([]);
   const [feedbacksVisible, setFeedbacksVisible] = useState(false);
   const [expandedShipments, setExpandedShipments] = useState({});
-  const [activeTab, setActiveTab] = useState("shipments"); // shipments, create, feedbacks, security
+  const [activeTab, setActiveTab] = useState("shipments");
+  const [loadError, setLoadError] = useState(null);
 
   const shipmentTypes = ["Truckload", "Less than Truckload"];
   const shipmentModes = ["Land Shipping", "Air Shipping", "Sea Shipping"];
@@ -56,6 +57,7 @@ export default function AdminDashboard() {
       setShipments(safeData);
     } catch (err) {
       console.error("Error loading shipments:", err);
+      setLoadError(err.message || "Failed to load shipments");
     } finally {
       setLoading(false);
     }
@@ -297,6 +299,17 @@ export default function AdminDashboard() {
                 <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
                   <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600"></div>
                   <p className="text-gray-600 mt-4">Loading shipments...</p>
+                </div>
+              ) : loadError ? (
+                <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
+                  <p className="text-red-600 font-semibold text-lg mb-2">⚠️ Error loading shipments</p>
+                  <p className="text-gray-500 text-sm mb-4">{loadError}</p>
+                  <button
+                    onClick={() => { setLoadError(null); loadShipments(); }}
+                    className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition"
+                  >
+                    Retry
+                  </button>
                 </div>
               ) : shipments.length === 0 ? (
                 <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
