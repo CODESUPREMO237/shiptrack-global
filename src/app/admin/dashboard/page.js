@@ -373,7 +373,8 @@ export default function AdminDashboard() {
           </div>
         )}
 
-
+        {/* Header */}
+        <div className="bg-gradient-to-r from-purple-600 to-orange-500 text-white shadow-xl">
           <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="flex items-center gap-3">
@@ -1051,7 +1052,6 @@ export default function AdminDashboard() {
         {/* Chat Widget */}
         <ChatWidget isAdmin={true} />
       </div>
-
     </AuthGuard>
   );
 }
