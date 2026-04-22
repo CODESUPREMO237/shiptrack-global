@@ -28,6 +28,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const [commentInputs, setCommentInputs] = useState({});
+  const [editInputs, setEditInputs] = useState({});
   const [feedbacks, setFeedbacks] = useState([]);
   const [feedbacksVisible, setFeedbacksVisible] = useState(false);
   const [expandedShipments, setExpandedShipments] = useState({});
@@ -135,6 +136,30 @@ export default function AdminDashboard() {
     if (!shipment) return;
     const updatedProducts = shipment.products.filter((_, i) => i !== index);
     await updateShipmentField(shipmentCode, "products", updatedProducts);
+  };
+
+  // Set a local edit value without saving
+  const setEditField = (code, field, value) => {
+    setEditInputs(prev => ({
+      ...prev,
+      [code]: { ...(prev[code] || {}), [field]: value }
+    }));
+  };
+
+  // Get current edit value (local draft > saved value)
+  const getEditField = (code, field, fallback) => {
+    const draft = editInputs[code]?.[field];
+    return draft !== undefined ? draft : fallback;
+  };
+
+  // Save all pending edits for a shipment at once
+  const saveEditFields = async (code) => {
+    const drafts = editInputs[code];
+    if (!drafts || Object.keys(drafts).length === 0) return;
+    for (const [field, value] of Object.entries(drafts)) {
+      await updateShipmentField(code, field, value);
+    }
+    setEditInputs(prev => { const n = {...prev}; delete n[code]; return n; });
   };
 
   const toggleShipmentExpanded = (code) => {
@@ -423,11 +448,19 @@ export default function AdminDashboard() {
 
                           <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">Carrier Reference</label>
-                            <input
-                              className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                              value={shipment.carrier_ref || ""}
-                              onChange={(e) => updateShipmentField(shipment.code, "carrier_ref", e.target.value)}
-                            />
+                            <div className="flex gap-2">
+                              <input
+                                className="flex-1 border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                value={getEditField(shipment.code, "carrier_ref", shipment.carrier_ref || "")}
+                                onChange={(e) => setEditField(shipment.code, "carrier_ref", e.target.value)}
+                              />
+                              <button
+                                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition text-sm font-semibold"
+                                onClick={() => saveEditFields(shipment.code)}
+                              >
+                                Save
+                              </button>
+                            </div>
                           </div>
                         </div>
 
@@ -441,16 +474,16 @@ export default function AdminDashboard() {
                                 type="number"
                                 step="0.01"
                                 className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                value={shipment.total_cost ?? ""}
-                                onChange={(e) => updateShipmentField(shipment.code, "total_cost", e.target.value ? parseFloat(e.target.value) : null)}
+                                value={getEditField(shipment.code, "total_cost", shipment.total_cost ?? "")}
+                                onChange={(e) => setEditField(shipment.code, "total_cost", e.target.value ? parseFloat(e.target.value) : null)}
                               />
                             </div>
                             <div>
                               <label className="block text-sm font-semibold text-gray-700 mb-2">Currency</label>
                               <select
                                 className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                value={shipment.currency || "USD"}
-                                onChange={(e) => updateShipmentField(shipment.code, "currency", e.target.value)}
+                                value={getEditField(shipment.code, "currency", shipment.currency || "USD")}
+                                onChange={(e) => setEditField(shipment.code, "currency", e.target.value)}
                               >
                                 {["USD","EUR","GBP","CAD","AUD","XAF","NGN","GHS","ZAR"].map(c => (
                                   <option key={c} value={c}>{c}</option>
@@ -461,8 +494,8 @@ export default function AdminDashboard() {
                               <label className="block text-sm font-semibold text-gray-700 mb-2">Payment Status</label>
                               <select
                                 className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                value={shipment.payment_status || "Pending"}
-                                onChange={(e) => updateShipmentField(shipment.code, "payment_status", e.target.value)}
+                                value={getEditField(shipment.code, "payment_status", shipment.payment_status || "Pending")}
+                                onChange={(e) => setEditField(shipment.code, "payment_status", e.target.value)}
                               >
                                 {["Pending","Paid","Partial","Refunded"].map(s => (
                                   <option key={s} value={s}>{s}</option>
@@ -475,8 +508,8 @@ export default function AdminDashboard() {
                                 type="number"
                                 step="0.01"
                                 className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                value={shipment.declared_value ?? ""}
-                                onChange={(e) => updateShipmentField(shipment.code, "declared_value", e.target.value ? parseFloat(e.target.value) : null)}
+                                value={getEditField(shipment.code, "declared_value", shipment.declared_value ?? "")}
+                                onChange={(e) => setEditField(shipment.code, "declared_value", e.target.value ? parseFloat(e.target.value) : null)}
                               />
                             </div>
                             <div>
@@ -485,8 +518,8 @@ export default function AdminDashboard() {
                                 type="number"
                                 step="0.01"
                                 className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                value={shipment.tax_amount ?? ""}
-                                onChange={(e) => updateShipmentField(shipment.code, "tax_amount", e.target.value ? parseFloat(e.target.value) : null)}
+                                value={getEditField(shipment.code, "tax_amount", shipment.tax_amount ?? "")}
+                                onChange={(e) => setEditField(shipment.code, "tax_amount", e.target.value ? parseFloat(e.target.value) : null)}
                               />
                             </div>
                             <div>
@@ -495,11 +528,17 @@ export default function AdminDashboard() {
                                 type="number"
                                 step="0.01"
                                 className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                value={shipment.insurance_value ?? ""}
-                                onChange={(e) => updateShipmentField(shipment.code, "insurance_value", e.target.value ? parseFloat(e.target.value) : null)}
+                                value={getEditField(shipment.code, "insurance_value", shipment.insurance_value ?? "")}
+                                onChange={(e) => setEditField(shipment.code, "insurance_value", e.target.value ? parseFloat(e.target.value) : null)}
                               />
                             </div>
                           </div>
+                          <button
+                            className="mt-4 bg-gradient-to-r from-purple-600 to-orange-500 text-white px-6 py-2 rounded-lg hover:shadow-lg transition duration-200 font-semibold"
+                            onClick={() => saveEditFields(shipment.code)}
+                          >
+                            Save Pricing
+                          </button>
                         </div>
 
                         {/* Shipper & Receiver */}
@@ -512,24 +551,24 @@ export default function AdminDashboard() {
                                 <label className="block text-xs font-semibold text-gray-600 mb-1">Name</label>
                                 <input
                                   className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                                  value={shipment.shipper_name || ""}
-                                  onChange={(e) => updateShipmentField(shipment.code, "shipper_name", e.target.value)}
+                                  value={getEditField(shipment.code, "shipper_name", shipment.shipper_name || "")}
+                                  onChange={(e) => setEditField(shipment.code, "shipper_name", e.target.value)}
                                 />
                               </div>
                               <div>
                                 <label className="block text-xs font-semibold text-gray-600 mb-1">Address</label>
                                 <input
                                   className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                                  value={shipment.shipper_address || ""}
-                                  onChange={(e) => updateShipmentField(shipment.code, "shipper_address", e.target.value)}
+                                  value={getEditField(shipment.code, "shipper_address", shipment.shipper_address || "")}
+                                  onChange={(e) => setEditField(shipment.code, "shipper_address", e.target.value)}
                                 />
                               </div>
                               <div>
                                 <label className="block text-xs font-semibold text-gray-600 mb-1">Phone</label>
                                 <input
                                   className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                                  value={shipment.shipper_phone || ""}
-                                  onChange={(e) => updateShipmentField(shipment.code, "shipper_phone", e.target.value)}
+                                  value={getEditField(shipment.code, "shipper_phone", shipment.shipper_phone || "")}
+                                  onChange={(e) => setEditField(shipment.code, "shipper_phone", e.target.value)}
                                 />
                               </div>
                             </div>
@@ -539,24 +578,24 @@ export default function AdminDashboard() {
                                 <label className="block text-xs font-semibold text-gray-600 mb-1">Name</label>
                                 <input
                                   className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                                  value={shipment.receiver_name || ""}
-                                  onChange={(e) => updateShipmentField(shipment.code, "receiver_name", e.target.value)}
+                                  value={getEditField(shipment.code, "receiver_name", shipment.receiver_name || "")}
+                                  onChange={(e) => setEditField(shipment.code, "receiver_name", e.target.value)}
                                 />
                               </div>
                               <div>
                                 <label className="block text-xs font-semibold text-gray-600 mb-1">Address</label>
                                 <input
                                   className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                                  value={shipment.receiver_address || ""}
-                                  onChange={(e) => updateShipmentField(shipment.code, "receiver_address", e.target.value)}
+                                  value={getEditField(shipment.code, "receiver_address", shipment.receiver_address || "")}
+                                  onChange={(e) => setEditField(shipment.code, "receiver_address", e.target.value)}
                                 />
                               </div>
                               <div>
                                 <label className="block text-xs font-semibold text-gray-600 mb-1">Phone</label>
                                 <input
                                   className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                                  value={shipment.receiver_phone || ""}
-                                  onChange={(e) => updateShipmentField(shipment.code, "receiver_phone", e.target.value)}
+                                  value={getEditField(shipment.code, "receiver_phone", shipment.receiver_phone || "")}
+                                  onChange={(e) => setEditField(shipment.code, "receiver_phone", e.target.value)}
                                 />
                               </div>
                               <div>
@@ -564,12 +603,18 @@ export default function AdminDashboard() {
                                 <input
                                   type="email"
                                   className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                                  value={shipment.receiver_email || ""}
-                                  onChange={(e) => updateShipmentField(shipment.code, "receiver_email", e.target.value)}
+                                  value={getEditField(shipment.code, "receiver_email", shipment.receiver_email || "")}
+                                  onChange={(e) => setEditField(shipment.code, "receiver_email", e.target.value)}
                                 />
                               </div>
                             </div>
                           </div>
+                          <button
+                            className="mt-4 bg-gradient-to-r from-purple-600 to-orange-500 text-white px-6 py-2 rounded-lg hover:shadow-lg transition duration-200 font-semibold"
+                            onClick={() => saveEditFields(shipment.code)}
+                          >
+                            Save Shipper & Receiver
+                          </button>
                         </div>
 
                         {/* Origin & Destination */}
@@ -580,19 +625,25 @@ export default function AdminDashboard() {
                               <label className="block text-sm font-semibold text-gray-700 mb-2">Origin City</label>
                               <input
                                 className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                value={shipment.originCity || shipment.location || ""}
-                                onChange={(e) => updateShipmentField(shipment.code, "originCity", e.target.value)}
+                                value={getEditField(shipment.code, "originCity", shipment.originCity || shipment.location || "")}
+                                onChange={(e) => setEditField(shipment.code, "originCity", e.target.value)}
                               />
                             </div>
                             <div>
                               <label className="block text-sm font-semibold text-gray-700 mb-2">Destination City</label>
                               <input
                                 className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                value={shipment.destCity || ""}
-                                onChange={(e) => updateShipmentField(shipment.code, "destCity", e.target.value)}
+                                value={getEditField(shipment.code, "destCity", shipment.destCity || "")}
+                                onChange={(e) => setEditField(shipment.code, "destCity", e.target.value)}
                               />
                             </div>
                           </div>
+                          <button
+                            className="mt-4 bg-gradient-to-r from-purple-600 to-orange-500 text-white px-6 py-2 rounded-lg hover:shadow-lg transition duration-200 font-semibold"
+                            onClick={() => saveEditFields(shipment.code)}
+                          >
+                            Save Locations
+                          </button>
                         </div>
 
                         {/* Dates */}
@@ -604,8 +655,8 @@ export default function AdminDashboard() {
                               <input
                                 type="datetime-local"
                                 className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                value={shipment.pickup_datetime ? shipment.pickup_datetime.slice(0,16) : ""}
-                                onChange={(e) => updateShipmentField(shipment.code, "pickup_datetime", e.target.value ? new Date(e.target.value).toISOString() : null)}
+                                value={getEditField(shipment.code, "pickup_datetime", shipment.pickup_datetime ? shipment.pickup_datetime.slice(0,16) : "")}
+                                onChange={(e) => setEditField(shipment.code, "pickup_datetime", e.target.value ? new Date(e.target.value).toISOString() : null)}
                               />
                             </div>
                             <div>
@@ -613,8 +664,8 @@ export default function AdminDashboard() {
                               <input
                                 type="datetime-local"
                                 className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                value={shipment.expected_delivery_datetime ? shipment.expected_delivery_datetime.slice(0,16) : ""}
-                                onChange={(e) => updateShipmentField(shipment.code, "expected_delivery_datetime", e.target.value ? new Date(e.target.value).toISOString() : null)}
+                                value={getEditField(shipment.code, "expected_delivery_datetime", shipment.expected_delivery_datetime ? shipment.expected_delivery_datetime.slice(0,16) : "")}
+                                onChange={(e) => setEditField(shipment.code, "expected_delivery_datetime", e.target.value ? new Date(e.target.value).toISOString() : null)}
                               />
                             </div>
                             <div>
@@ -622,11 +673,17 @@ export default function AdminDashboard() {
                               <input
                                 type="datetime-local"
                                 className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                value={shipment.delivery_datetime ? shipment.delivery_datetime.slice(0,16) : ""}
-                                onChange={(e) => updateShipmentField(shipment.code, "delivery_datetime", e.target.value ? new Date(e.target.value).toISOString() : null)}
+                                value={getEditField(shipment.code, "delivery_datetime", shipment.delivery_datetime ? shipment.delivery_datetime.slice(0,16) : "")}
+                                onChange={(e) => setEditField(shipment.code, "delivery_datetime", e.target.value ? new Date(e.target.value).toISOString() : null)}
                               />
                             </div>
                           </div>
+                          <button
+                            className="mt-4 bg-gradient-to-r from-purple-600 to-orange-500 text-white px-6 py-2 rounded-lg hover:shadow-lg transition duration-200 font-semibold"
+                            onClick={() => saveEditFields(shipment.code)}
+                          >
+                            Save Dates
+                          </button>
                         </div>
 
                         {/* Admin Comment */}
