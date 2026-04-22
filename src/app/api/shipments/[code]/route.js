@@ -18,7 +18,16 @@ export async function PATCH(req, { params }) {
     const allowedShipmentFields = [
       'name', 'agency', 'status', 'shipment_type', 'shipment_mode',
       'payment_mode', 'carrier_ref', 'current_lat', 'current_lng',
-      'dest_lat', 'dest_lng', 'estimated_hours'
+      'dest_lat', 'dest_lng', 'estimated_hours',
+      // Pricing & Finance
+      'total_cost', 'currency', 'payment_status', 'declared_value', 'tax_amount', 'insurance_value',
+      // Shipper & Receiver
+      'shipper_name', 'shipper_address', 'shipper_phone',
+      'receiver_name', 'receiver_address', 'receiver_phone', 'receiver_email',
+      // Origin & Destination
+      'originCity', 'destCity',
+      // Dates
+      'pickup_datetime', 'expected_delivery_datetime', 'delivery_datetime',
     ];
 
     const payload = {};
