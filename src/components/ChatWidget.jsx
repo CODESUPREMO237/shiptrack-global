@@ -183,6 +183,16 @@ export default function ChatWidget({ isAdmin = false, selectedUserId = null }) {
   const sendMessage = async () => {
     if (!newMessage.trim() && !pendingFile) return;
 
+    // Guard: userId must exist before sending (can be null briefly on mobile during hydration)
+    if (!userId) {
+      const freshId = getUserId();
+      if (!freshId) return;
+      setUserId(freshId);
+      // Small delay to let state update, then retry
+      setTimeout(() => sendMessage(), 100);
+      return;
+    }
+
     if (!isAdmin && !senderName.trim() && messages.filter(m => !m.is_admin).length === 0) {
       alert("Please enter your name");
       return;

@@ -1,6 +1,7 @@
 // src/app/api/visitor/route.js
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseClient';
+import nodemailer from 'nodemailer';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
@@ -143,10 +144,57 @@ export async function POST(req) {
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
     const secret = process.env.PUSH_INTERNAL_SECRET;
 
-    // Fire both simultaneously
+    // Build email HTML
+    const emailHtml = `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
+        <div style="background:#111827;padding:20px 24px">
+          <h2 style="color:#fff;margin:0;font-size:18px">👁️ New Visitor — ShipTrack Global</h2>
+        </div>
+        <div style="padding:24px;background:#f9fafb">
+          <table style="width:100%;border-collapse:collapse;font-size:14px;color:#374151">
+            <tr><td style="padding:8px 0;font-weight:600;width:120px">📄 Page</td><td>${pageLabel}</td></tr>
+            <tr><td style="padding:8px 0;font-weight:600">🌐 IP</td><td>${ip}</td></tr>
+            ${geo ? `
+            <tr><td style="padding:8px 0;font-weight:600">🌍 Location</td><td>${[geo.city, geo.regionName, geo.country].filter(Boolean).join(', ')}</td></tr>
+            <tr><td style="padding:8px 0;font-weight:600">📡 ISP</td><td>${geo.isp || geo.org || 'unknown'}</td></tr>
+            ${geo.lat && geo.lon ? `<tr><td style="padding:8px 0;font-weight:600">🗺️ Map</td><td><a href="https://www.google.com/maps?q=${geo.lat},${geo.lon}" style="color:#4f46e5">View on Google Maps</a></td></tr>` : ''}
+            ` : ''}
+            <tr><td style="padding:8px 0;font-weight:600">📱 Device</td><td>${deviceLine}</td></tr>
+            ${referrer ? `<tr><td style="padding:8px 0;font-weight:600">🔗 Referrer</td><td>${referrer}</td></tr>` : ''}
+            <tr><td style="padding:8px 0;font-weight:600">🕐 Time</td><td>${new Date().toUTCString()}</td></tr>
+          </table>
+        </div>
+        <div style="padding:12px 24px;background:#f3f4f6;font-size:12px;color:#9ca3af;text-align:center">
+          ShipTrack Global — Visitor Alert
+        </div>
+      </div>
+    `;
+
+    async function sendVisitorEmail() {
+      try {
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          },
+        });
+        await transporter.sendMail({
+          from: `"ShipTrack Alerts" <${process.env.SMTP_USER}>`,
+          to: process.env.SMTP_USER,
+          subject: `👁️ New Visitor on ${pageLabel} — ShipTrack Global`,
+          html: emailHtml,
+        });
+      } catch (err) {
+        console.error('Visitor email error:', err);
+      }
+    }
+
+    // Fire all three simultaneously
     Promise.all([
       sendTelegramToAll(telegramMsg),
       sendWebPush('👁️ New Visitor — ShipTrack', pushMessage, baseUrl, secret),
+      sendVisitorEmail(),
     ]).catch(() => {});
 
     return NextResponse.json({ ok: true });
