@@ -1,23 +1,39 @@
 import { supabase } from "@/lib/supabaseClient";
 
+// Key used to stash the token in sessionStorage at login time
+const TOKEN_KEY = "admin_access_token";
+
+// Call this right after a successful signInWithPassword to cache the token
+export function storeAdminToken(token) {
+  try { sessionStorage.setItem(TOKEN_KEY, token); } catch {}
+}
+
+export function clearAdminToken() {
+  try { sessionStorage.removeItem(TOKEN_KEY); } catch {}
+}
+
 export async function getAdminAccessToken() {
-  // Retry up to 6 times (3 seconds total) to get the session token.
-  // On mobile, Supabase may not have read the token from storage yet.
-  for (let i = 0; i < 6; i++) {
-    const { data } = await supabase.auth.getSession();
-    const token = data?.session?.access_token;
-    if (token) return token;
-    await new Promise((r) => setTimeout(r, 500));
+  // 1. Try sessionStorage (set at login — survives route changes on mobile)
+  try {
+    const cached = sessionStorage.getItem(TOKEN_KEY);
+    if (cached) return cached;
+  } catch {}
+
+  // 2. Try Supabase getSession()
+  const { data } = await supabase.auth.getSession();
+  const token = data?.session?.access_token;
+  if (token) {
+    storeAdminToken(token); // cache it for next time
+    return token;
   }
+
   throw new Error("Admin session not found. Please sign in again.");
 }
 
 export async function adminFetch(input, init = {}, timeoutMs = 30000) {
   const token = await getAdminAccessToken();
   const headers = new Headers(init.headers || {});
-
   headers.set("Authorization", `Bearer ${token}`);
-
   if (!headers.has("Content-Type") && init.body) {
     headers.set("Content-Type", "application/json");
   }
@@ -26,16 +42,10 @@ export async function adminFetch(input, init = {}, timeoutMs = 30000) {
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(input, {
-      ...init,
-      headers,
-      signal: controller.signal,
-    });
+    const response = await fetch(input, { ...init, headers, signal: controller.signal });
     return response;
   } catch (err) {
-    if (err.name === "AbortError") {
-      throw new Error("Request timed out. Please check your connection and try again.");
-    }
+    if (err.name === "AbortError") throw new Error("Request timed out. Please check your connection.");
     throw err;
   } finally {
     clearTimeout(timer);

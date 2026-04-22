@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { isAdminUser } from "@/lib/authRoles";
+import { storeAdminToken } from "@/lib/adminApi";
 import { validateEmail } from "@/lib/authValidation";
 
 export default function AdminLoginCard({
@@ -24,7 +25,8 @@ export default function AdminLoginCard({
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (!ignore && isAdminUser(data.session?.user)) {
-        router.replace("/admin/dashboard");
+        storeAdminToken(data.session.access_token);
+      router.replace("/admin/dashboard");
       }
     };
     checkSession();
@@ -54,6 +56,7 @@ export default function AdminLoginCard({
         return;
       }
 
+      storeAdminToken(data.session.access_token);
       router.replace("/admin/dashboard");
     } catch (err) {
       setError(err.message || "Unable to sign in.");

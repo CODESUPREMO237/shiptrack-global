@@ -6,7 +6,7 @@ import AuthGuard from "@/components/AuthGuard";
 import AdminForm from "@/components/AdminForm";
 import AdminSecurityPanel from "@/components/AdminSecurityPanel";
 import ChatWidget from "@/components/ChatWidget";
-import { adminFetch } from "@/lib/adminApi";
+import { adminFetch, clearAdminToken } from "@/lib/adminApi";
 import { supabase } from "@/lib/supabaseClient";
 import { 
   Package, 
@@ -76,6 +76,7 @@ export default function AdminDashboard() {
   };
 
   const handleLogout = async () => {
+    clearAdminToken();
     await supabase.auth.signOut();
     router.replace("/admin");
   };
