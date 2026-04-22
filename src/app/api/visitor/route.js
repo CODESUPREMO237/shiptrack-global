@@ -5,6 +5,12 @@ import nodemailer from 'nodemailer';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
+// Escape for Telegram HTML parse_mode
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 // Parse user agent into human-readable device/browser/OS
 function parseUA(ua) {
   // Device type
@@ -61,19 +67,33 @@ async function getGeoInfo(ip) {
 async function sendTelegramToAll(message) {
   if (!TELEGRAM_BOT_TOKEN || !supabaseAdmin) return;
   try {
-    const { data: subs } = await supabaseAdmin
+    const { data: subs, error: subsErr } = await supabaseAdmin
       .from('telegram_subscriptions')
       .select('chat_id');
-    if (!subs || subs.length === 0) return;
-    await Promise.allSettled(
-      subs.map((row) =>
-        fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    if (subsErr) {
+      console.error('Telegram: failed to fetch subscribers:', subsErr);
+      return;
+    }
+    if (!subs || subs.length === 0) {
+      console.log('Telegram: no subscribers found');
+      return;
+    }
+    console.log(`Telegram: sending to ${subs.length} subscriber(s)`);
+    const results = await Promise.allSettled(
+      subs.map(async (row) => {
+        const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ chat_id: row.chat_id, text: message, parse_mode: 'HTML' }),
-        })
-      )
+        });
+        const data = await res.json();
+        if (!data.ok) {
+          console.error(`Telegram send failed for chat_id ${row.chat_id}:`, data.description);
+        }
+        return data;
+      })
     );
+    console.log('Telegram results:', results.map(r => r.status));
   } catch (err) {
     console.error('Telegram broadcast error:', err);
   }
@@ -113,28 +133,28 @@ export async function POST(req) {
     const geo = await getGeoInfo(ip);
 
     // Build location string
-    let locationLine = `🌐 IP: <code>${ip}</code>`;
+    let locationLine = `🌐 IP: <code>${escHtml(ip)}</code>`;
     if (geo) {
       const flag = geo.countryCode
-        ? geo.countryCode.toUpperCase().replace(/./g, (c) => String.fromCodePoint(127397 + c.charCodeAt(0)))
+        ? [...geo.countryCode.toUpperCase()].map((c) => String.fromCodePoint(127397 + c.charCodeAt(0))).join('')
         : '';
-      const place = [geo.city, geo.regionName, geo.country].filter(Boolean).join(', ');
+      const place = escHtml([geo.city, geo.regionName, geo.country].filter(Boolean).join(', '));
       const mapLink = geo.lat && geo.lon
         ? `\n🗺️ <a href="https://www.google.com/maps?q=${geo.lat},${geo.lon}">View on Map</a>`
         : '';
       locationLine =
         `🌍 ${flag} <b>${place}</b>${mapLink}\n` +
-        `🌐 IP: <code>${ip}</code>\n` +
-        `📡 ISP: ${geo.isp || geo.org || 'unknown'}`;
+        `🌐 IP: <code>${escHtml(ip)}</code>\n` +
+        `📡 ISP: ${escHtml(geo.isp || geo.org || 'unknown')}`;
     }
 
-    const deviceLine = [device, os, browser].filter(Boolean).join(' · ');
-    const refLine = referrer ? `\n🔗 From: <code>${referrer}</code>` : '';
+    const deviceLine = escHtml([device, os, browser].filter(Boolean).join(' · '));
+    const refLine = referrer ? `\n🔗 From: <code>${escHtml(referrer)}</code>` : '';
 
     const telegramMsg =
       `👁️ <b>New Visitor — ShipTrack</b>\n` +
       `━━━━━━━━━━━━━━━━\n` +
-      `📄 Page: <code>${pageLabel}</code>\n` +
+      `📄 Page: <code>${escHtml(pageLabel)}</code>\n` +
       `${locationLine}\n` +
       `📱 ${deviceLine}` +
       `${refLine}`;

@@ -345,7 +345,8 @@ export default function ChatWidget({ isAdmin = false, selectedUserId = null }) {
 
   return (
     <>
-      {/* Chat button */}
+      {/* Chat button — hidden when chat is open so it doesn't block the send button on mobile */}
+      {!isOpen && (
       <button
         onClick={handleOpen}
         className="fixed bottom-6 right-6 bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110 z-50"
@@ -360,6 +361,7 @@ export default function ChatWidget({ isAdmin = false, selectedUserId = null }) {
           </span>
         )}
       </button>
+      )}
 
       {/* Chat window */}
       {isOpen && (
@@ -642,12 +644,11 @@ export default function ChatWidget({ isAdmin = false, selectedUserId = null }) {
                     <span className="text-xl">😊</span>
                   </button>
 
-                  {/* Send button — type="submit" ensures mobile taps trigger form submit */}
+                  {/* Send button */}
                   <button
                     type="submit"
-                    onTouchEnd={(e) => { e.preventDefault(); sendMessage(); }}
                     disabled={!newMessage.trim() && !pendingFile}
-                    className="bg-green-500 text-white p-2 rounded-full hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-green-500 text-white p-2.5 rounded-full hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[40px] min-h-[40px] flex items-center justify-center"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
