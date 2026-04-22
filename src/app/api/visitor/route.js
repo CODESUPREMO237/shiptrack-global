@@ -4,31 +4,32 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
-async function sendTelegram(message) {
-  if (!TELEGRAM_BOT_TOKEN) return;
-  if (!supabaseAdmin) return;
+async function sendTelegramToAll(message) {
+  if (!TELEGRAM_BOT_TOKEN || !supabaseAdmin) return;
 
   try {
-    const { data } = await supabaseAdmin
-      .from('admin_settings')
-      .select('value')
-      .eq('key', 'telegram_chat_id')
-      .single();
+    const { data: subs } = await supabaseAdmin
+      .from('telegram_subscriptions')
+      .select('chat_id');
 
-    const chatId = data?.value;
-    if (!chatId) return;
+    if (!subs || subs.length === 0) return;
 
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: message,
-        parse_mode: 'HTML',
-      }),
-    });
+    // Send to all subscribers in parallel
+    await Promise.allSettled(
+      subs.map((row) =>
+        fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: row.chat_id,
+            text: message,
+            parse_mode: 'HTML',
+          }),
+        })
+      )
+    );
   } catch (err) {
-    console.error('Telegram notify error:', err);
+    console.error('Telegram broadcast error:', err);
   }
 }
 
@@ -66,22 +67,22 @@ export async function POST(req) {
 
     const pageLabel = page || '/';
     const shortUA = ua.length > 80 ? ua.slice(0, 77) + '…' : ua;
-    const shortRef = referrer ? ` · from: ${referrer}` : '';
+    const refLine = referrer ? `\n🔗 From: <code>${referrer}</code>` : '';
 
     const telegramMsg =
       `👁️ <b>New Visitor — ShipTrack</b>\n` +
       `📍 Page: <code>${pageLabel}</code>\n` +
       `🌐 IP: <code>${ip}</code>\n` +
-      `📱 ${shortUA}${shortRef}`;
+      `📱 ${shortUA}${refLine}`;
 
     const pushMessage = `${pageLabel} · ${ip} · ${shortUA}`;
 
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
     const secret = process.env.PUSH_INTERNAL_SECRET;
 
-    // Fire both simultaneously — neither blocks the visitor response
+    // Fire both simultaneously — fire and forget
     Promise.all([
-      sendTelegram(telegramMsg),
+      sendTelegramToAll(telegramMsg),
       sendWebPush('👁️ New Visitor — ShipTrack', pushMessage, baseUrl, secret),
     ]).catch(() => {});
 

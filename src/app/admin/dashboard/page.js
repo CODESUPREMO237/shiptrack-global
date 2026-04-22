@@ -40,8 +40,10 @@ export default function AdminDashboard() {
   const [pushSubscription, setPushSubscription] = useState(null);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
   const [telegramConnected, setTelegramConnected] = useState(false);
+  const [telegramSubscribers, setTelegramSubscribers] = useState([]);
   const [showTelegramSetup, setShowTelegramSetup] = useState(false);
   const [telegramChatId, setTelegramChatId] = useState("");
+  const [telegramLabel, setTelegramLabel] = useState("");
 
   const shipmentTypes = ["Truckload", "Less than Truckload"];
   const shipmentModes = ["Land Shipping", "Air Shipping", "Sea Shipping"];
@@ -165,11 +167,14 @@ export default function AdminDashboard() {
     }
   };
 
-  // Check Telegram connection on mount
+  // Load Telegram subscribers on mount
   useEffect(() => {
     adminFetch("/api/telegram/setup")
       .then((r) => r.json())
-      .then((d) => setTelegramConnected(d.connected))
+      .then((d) => {
+        setTelegramConnected(d.connected);
+        setTelegramSubscribers(d.subscribers || []);
+      })
       .catch(() => {});
   }, []);
 
@@ -179,26 +184,34 @@ export default function AdminDashboard() {
     try {
       const res = await adminFetch("/api/telegram/setup", {
         method: "POST",
-        body: JSON.stringify({ chat_id: id }),
+        body: JSON.stringify({ chat_id: id, label: telegramLabel.trim() || "Admin" }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
-      setTelegramConnected(true);
-      setShowTelegramSetup(false);
+      // Refresh subscriber list
+      const updated = await adminFetch("/api/telegram/setup").then((r) => r.json());
+      setTelegramConnected(updated.connected);
+      setTelegramSubscribers(updated.subscribers || []);
       setTelegramChatId("");
+      setTelegramLabel("");
       showToast("✅ Telegram connected! Check your Telegram for a confirmation message.");
     } catch (err) {
       showToast("Failed: " + err.message);
     }
   };
 
-  const disconnectTelegram = async () => {
+  const disconnectTelegram = async (chatId) => {
     try {
-      await adminFetch("/api/telegram/setup", { method: "DELETE" });
-      setTelegramConnected(false);
-      showToast("Telegram disconnected.");
+      await adminFetch("/api/telegram/setup", {
+        method: "DELETE",
+        body: JSON.stringify({ chat_id: chatId }),
+      });
+      const updated = await adminFetch("/api/telegram/setup").then((r) => r.json());
+      setTelegramConnected(updated.connected);
+      setTelegramSubscribers(updated.subscribers || []);
+      showToast("Telegram account removed.");
     } catch {
-      showToast("Failed to disconnect Telegram");
+      showToast("Failed to remove Telegram account");
     }
   };
 
@@ -420,59 +433,86 @@ export default function AdminDashboard() {
             onClick={() => setShowTelegramSetup(false)}
           >
             <div
-              className="bg-white rounded-2xl w-full max-w-sm p-6 mb-4 shadow-2xl"
+              className="bg-white rounded-2xl w-full max-w-sm p-6 mb-4 shadow-2xl max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-gray-900">✈️ Connect Telegram</h2>
+                <h2 className="text-lg font-bold text-gray-900">✈️ Telegram Notifications</h2>
                 <button onClick={() => setShowTelegramSetup(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
               </div>
-              <p className="text-sm text-gray-500 mb-5">
-                Get instant visitor notifications on <strong>any phone</strong> via Telegram — works on iPhone and Android with no extra setup.
-              </p>
-              <ol className="space-y-4 mb-6">
-                <li className="flex items-start gap-3">
-                  <span className="bg-blue-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold shrink-0">1</span>
-                  <div>
-                    <p className="font-semibold text-gray-800">Open Telegram and search for your bot</p>
-                    <a
-                      href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'your_bot'}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-600 underline break-all"
-                    >
-                      t.me/{process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'your_bot_username'}
-                    </a>
+
+              {/* Connected accounts list */}
+              {telegramSubscribers.length > 0 && (
+                <div className="mb-5">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Connected Accounts ({telegramSubscribers.length})</p>
+                  <div className="space-y-2">
+                    {telegramSubscribers.map((sub) => (
+                      <div key={sub.chat_id} className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                        <div>
+                          <p className="font-semibold text-gray-800 text-sm">{sub.label}</p>
+                          <p className="text-xs text-gray-400">ID: {sub.chat_id}</p>
+                        </div>
+                        <button
+                          onClick={() => disconnectTelegram(sub.chat_id)}
+                          className="text-red-400 hover:text-red-600 text-xs font-semibold ml-2"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="bg-blue-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold shrink-0">2</span>
-                  <div>
-                    <p className="font-semibold text-gray-800">Send <code className="bg-gray-100 px-1 rounded">/start</code> to the bot</p>
-                    <p className="text-xs text-gray-500">The bot will reply with your Chat ID number.</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="bg-blue-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold shrink-0">3</span>
-                  <div>
-                    <p className="font-semibold text-gray-800">Paste your Chat ID below</p>
-                  </div>
-                </li>
-              </ol>
-              <input
-                type="text"
-                placeholder="Your Telegram Chat ID (e.g. 123456789)"
-                value={telegramChatId}
-                onChange={(e) => setTelegramChatId(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && connectTelegram()}
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={connectTelegram}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl transition duration-200"
-              >
-                Connect & Test
-              </button>
+                </div>
+              )}
+
+              <div className="border-t border-gray-100 pt-5">
+                <p className="text-sm font-semibold text-gray-700 mb-1">Add another account</p>
+                <p className="text-xs text-gray-400 mb-4">Each person follows these steps on their own phone:</p>
+                <ol className="space-y-3 mb-5">
+                  <li className="flex items-start gap-3">
+                    <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">1</span>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">Open Telegram → find the bot</p>
+                      <a
+                        href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'your_bot'}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 underline break-all"
+                      >
+                        t.me/{process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'your_bot_username'}
+                      </a>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">2</span>
+                    <p className="text-sm text-gray-700">Send <code className="bg-gray-100 px-1 rounded">/start</code> — the bot replies with your Chat ID</p>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0">3</span>
+                    <p className="text-sm text-gray-700">Paste the Chat ID below and click Connect</p>
+                  </li>
+                </ol>
+                <input
+                  type="text"
+                  placeholder="Name / Label (e.g. Stephane)"
+                  value={telegramLabel}
+                  onChange={(e) => setTelegramLabel(e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Telegram Chat ID (e.g. 123456789)"
+                  value={telegramChatId}
+                  onChange={(e) => setTelegramChatId(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && connectTelegram()}
+                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={connectTelegram}
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl transition duration-200"
+                >
+                  Connect & Test
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -535,8 +575,8 @@ export default function AdminDashboard() {
                 </button>
                 {/* Telegram Button */}
                 <button
-                  onClick={telegramConnected ? disconnectTelegram : () => setShowTelegramSetup(true)}
-                  title={telegramConnected ? "Telegram connected — click to disconnect" : "Connect Telegram for instant notifications on any phone"}
+                  onClick={() => setShowTelegramSetup(true)}
+                  title="Manage Telegram notifications"
                   className={`flex items-center gap-2 backdrop-blur-sm px-4 py-2 rounded-lg transition duration-200 ${
                     telegramConnected
                       ? "bg-blue-400/30 hover:bg-blue-400/50 text-white border border-blue-300/50"
@@ -544,7 +584,9 @@ export default function AdminDashboard() {
                   }`}
                 >
                   <span className="text-base leading-none">✈️</span>
-                  <span className="hidden md:inline">{telegramConnected ? "Telegram ON" : "Telegram"}</span>
+                  <span className="hidden md:inline">
+                    {telegramConnected ? `Telegram (${telegramSubscribers.length})` : "Telegram"}
+                  </span>
                 </button>
               </div>
             </div>

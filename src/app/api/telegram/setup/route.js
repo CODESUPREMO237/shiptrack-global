@@ -5,7 +5,7 @@ import { supabaseAdmin } from '@/lib/supabaseClient';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
-// GET — verify a code the admin just sent to the bot, return their chat_id
+// POST — add a new chat_id subscription
 export async function POST(req) {
   try {
     const authResult = await requireAdminUser(req);
@@ -15,20 +15,22 @@ export async function POST(req) {
       return NextResponse.json({ error: 'TELEGRAM_BOT_TOKEN not configured' }, { status: 500 });
     }
 
-    const { chat_id } = await req.json();
+    const { chat_id, label } = await req.json();
     if (!chat_id) {
       return NextResponse.json({ error: 'chat_id is required' }, { status: 400 });
     }
 
-    // Test: send a welcome message to confirm it works
+    const chatIdStr = String(chat_id).trim();
+
+    // Test by sending a welcome message
     const testRes = await fetch(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          chat_id,
-          text: '✅ ShipTrack Global connected! You will now receive visitor notifications here.',
+          chat_id: chatIdStr,
+          text: `✅ <b>ShipTrack Global connected!</b>\n\nYou will now receive visitor notifications here.\n\n👤 Account: ${label || 'Admin'}`,
           parse_mode: 'HTML',
         }),
       }
@@ -37,53 +39,75 @@ export async function POST(req) {
     const testData = await testRes.json();
     if (!testData.ok) {
       return NextResponse.json(
-        { error: 'Could not send message. Make sure you started the bot first.' },
+        { error: 'Could not send message. Make sure you sent /start to the bot first.' },
         { status: 400 }
       );
     }
 
-    // Save chat_id to supabase — upsert keyed by a fixed admin row
+    // Upsert into telegram_subscriptions — one row per chat_id
     const { error } = await supabaseAdmin
-      .from('admin_settings')
-      .upsert({ key: 'telegram_chat_id', value: String(chat_id), updated_at: new Date().toISOString() }, { onConflict: 'key' });
+      .from('telegram_subscriptions')
+      .upsert(
+        {
+          chat_id: chatIdStr,
+          label: label || 'Admin',
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'chat_id' }
+      );
 
     if (error) throw error;
 
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('Telegram setup error:', err);
-    return NextResponse.json({ error: 'Failed to save Telegram chat ID' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to save Telegram subscription' }, { status: 500 });
   }
 }
 
-// DELETE — remove Telegram notifications
+// DELETE — remove a specific chat_id
 export async function DELETE(req) {
   try {
     const authResult = await requireAdminUser(req);
     if (authResult.response) return authResult.response;
 
-    await supabaseAdmin.from('admin_settings').delete().eq('key', 'telegram_chat_id');
+    const { chat_id } = await req.json();
+    if (!chat_id) {
+      return NextResponse.json({ error: 'chat_id is required' }, { status: 400 });
+    }
+
+    const { error } = await supabaseAdmin
+      .from('telegram_subscriptions')
+      .delete()
+      .eq('chat_id', String(chat_id));
+
+    if (error) throw error;
+
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('Telegram remove error:', err);
-    return NextResponse.json({ error: 'Failed to remove Telegram' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to remove Telegram subscription' }, { status: 500 });
   }
 }
 
-// GET — check if telegram is configured
+// GET — list all connected chat IDs
 export async function GET(req) {
   try {
     const authResult = await requireAdminUser(req);
     if (authResult.response) return authResult.response;
 
-    const { data } = await supabaseAdmin
-      .from('admin_settings')
-      .select('value')
-      .eq('key', 'telegram_chat_id')
-      .single();
+    const { data, error } = await supabaseAdmin
+      .from('telegram_subscriptions')
+      .select('chat_id, label, updated_at')
+      .order('updated_at', { ascending: false });
 
-    return NextResponse.json({ connected: !!data?.value, chat_id: data?.value || null });
+    if (error) throw error;
+
+    return NextResponse.json({
+      connected: (data?.length || 0) > 0,
+      subscribers: data || [],
+    });
   } catch {
-    return NextResponse.json({ connected: false, chat_id: null });
+    return NextResponse.json({ connected: false, subscribers: [] });
   }
 }
