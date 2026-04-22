@@ -431,6 +431,204 @@ export default function AdminDashboard() {
                           </div>
                         </div>
 
+                        {/* Pricing & Finance */}
+                        <div className="border-t pt-6">
+                          <h4 className="text-lg font-bold text-gray-900 mb-4">💰 Pricing & Finance</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">Total Cost</label>
+                              <input
+                                type="number"
+                                step="0.01"
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                value={shipment.total_cost ?? ""}
+                                onChange={(e) => updateShipmentField(shipment.code, "total_cost", e.target.value ? parseFloat(e.target.value) : null)}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">Currency</label>
+                              <select
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                value={shipment.currency || "USD"}
+                                onChange={(e) => updateShipmentField(shipment.code, "currency", e.target.value)}
+                              >
+                                {["USD","EUR","GBP","CAD","AUD","XAF","NGN","GHS","ZAR"].map(c => (
+                                  <option key={c} value={c}>{c}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">Payment Status</label>
+                              <select
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                value={shipment.payment_status || "Pending"}
+                                onChange={(e) => updateShipmentField(shipment.code, "payment_status", e.target.value)}
+                              >
+                                {["Pending","Paid","Partial","Refunded"].map(s => (
+                                  <option key={s} value={s}>{s}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">Declared Value</label>
+                              <input
+                                type="number"
+                                step="0.01"
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                value={shipment.declared_value ?? ""}
+                                onChange={(e) => updateShipmentField(shipment.code, "declared_value", e.target.value ? parseFloat(e.target.value) : null)}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">Tax Amount</label>
+                              <input
+                                type="number"
+                                step="0.01"
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                value={shipment.tax_amount ?? ""}
+                                onChange={(e) => updateShipmentField(shipment.code, "tax_amount", e.target.value ? parseFloat(e.target.value) : null)}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">Insurance Value</label>
+                              <input
+                                type="number"
+                                step="0.01"
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                value={shipment.insurance_value ?? ""}
+                                onChange={(e) => updateShipmentField(shipment.code, "insurance_value", e.target.value ? parseFloat(e.target.value) : null)}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Shipper & Receiver */}
+                        <div className="border-t pt-6">
+                          <h4 className="text-lg font-bold text-gray-900 mb-4">📦 Shipper & Receiver</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-3">
+                              <p className="text-sm font-bold text-purple-600 uppercase tracking-wide">Shipper</p>
+                              <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">Name</label>
+                                <input
+                                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                                  value={shipment.shipper_name || ""}
+                                  onChange={(e) => updateShipmentField(shipment.code, "shipper_name", e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">Address</label>
+                                <input
+                                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                                  value={shipment.shipper_address || ""}
+                                  onChange={(e) => updateShipmentField(shipment.code, "shipper_address", e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">Phone</label>
+                                <input
+                                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                                  value={shipment.shipper_phone || ""}
+                                  onChange={(e) => updateShipmentField(shipment.code, "shipper_phone", e.target.value)}
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-3">
+                              <p className="text-sm font-bold text-orange-600 uppercase tracking-wide">Receiver</p>
+                              <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">Name</label>
+                                <input
+                                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                                  value={shipment.receiver_name || ""}
+                                  onChange={(e) => updateShipmentField(shipment.code, "receiver_name", e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">Address</label>
+                                <input
+                                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                                  value={shipment.receiver_address || ""}
+                                  onChange={(e) => updateShipmentField(shipment.code, "receiver_address", e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">Phone</label>
+                                <input
+                                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                                  value={shipment.receiver_phone || ""}
+                                  onChange={(e) => updateShipmentField(shipment.code, "receiver_phone", e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">Email</label>
+                                <input
+                                  type="email"
+                                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                                  value={shipment.receiver_email || ""}
+                                  onChange={(e) => updateShipmentField(shipment.code, "receiver_email", e.target.value)}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Origin & Destination */}
+                        <div className="border-t pt-6">
+                          <h4 className="text-lg font-bold text-gray-900 mb-4">🗺️ Origin & Destination</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">Origin City</label>
+                              <input
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                value={shipment.originCity || shipment.location || ""}
+                                onChange={(e) => updateShipmentField(shipment.code, "originCity", e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">Destination City</label>
+                              <input
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                value={shipment.destCity || ""}
+                                onChange={(e) => updateShipmentField(shipment.code, "destCity", e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Dates */}
+                        <div className="border-t pt-6">
+                          <h4 className="text-lg font-bold text-gray-900 mb-4">📅 Dates</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">Pickup Date & Time</label>
+                              <input
+                                type="datetime-local"
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                value={shipment.pickup_datetime ? shipment.pickup_datetime.slice(0,16) : ""}
+                                onChange={(e) => updateShipmentField(shipment.code, "pickup_datetime", e.target.value ? new Date(e.target.value).toISOString() : null)}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">Expected Delivery</label>
+                              <input
+                                type="datetime-local"
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                value={shipment.expected_delivery_datetime ? shipment.expected_delivery_datetime.slice(0,16) : ""}
+                                onChange={(e) => updateShipmentField(shipment.code, "expected_delivery_datetime", e.target.value ? new Date(e.target.value).toISOString() : null)}
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 mb-2">Actual Delivery</label>
+                              <input
+                                type="datetime-local"
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                value={shipment.delivery_datetime ? shipment.delivery_datetime.slice(0,16) : ""}
+                                onChange={(e) => updateShipmentField(shipment.code, "delivery_datetime", e.target.value ? new Date(e.target.value).toISOString() : null)}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
                         {/* Admin Comment */}
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-2">Admin Comment (Sent to Customer)</label>
