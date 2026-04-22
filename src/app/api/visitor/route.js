@@ -190,12 +190,13 @@ export async function POST(req) {
       }
     }
 
-    // Fire all three simultaneously
-    Promise.all([
+    // Fire all three simultaneously — must await so the serverless function
+    // doesn't terminate before Telegram / email finish sending
+    await Promise.allSettled([
       sendTelegramToAll(telegramMsg),
       sendWebPush('👁️ New Visitor — ShipTrack', pushMessage, baseUrl, secret),
       sendVisitorEmail(),
-    ]).catch(() => {});
+    ]);
 
     return NextResponse.json({ ok: true });
   } catch (err) {

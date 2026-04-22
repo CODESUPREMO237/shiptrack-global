@@ -327,6 +327,11 @@ export default function ChatWidget({ isAdmin = false, selectedUserId = null }) {
     }
   };
 
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    sendMessage();
+  };
+
   const formatFileSize = (bytes) => {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -577,7 +582,7 @@ export default function ChatWidget({ isAdmin = false, selectedUserId = null }) {
               )}
 
               {/* Input area */}
-              <div className="p-3 border-t border-gray-200 bg-white rounded-b-2xl">
+              <form onSubmit={handleFormSubmit} className="p-3 border-t border-gray-200 bg-white rounded-b-2xl">
                 <div className="flex items-end gap-2">
                   {/* Attach button with menu */}
                   <div className="relative">
@@ -637,10 +642,10 @@ export default function ChatWidget({ isAdmin = false, selectedUserId = null }) {
                     <span className="text-xl">😊</span>
                   </button>
 
-                  {/* Send button */}
+                  {/* Send button — type="submit" ensures mobile taps trigger form submit */}
                   <button
-                    type="button"
-                    onClick={sendMessage}
+                    type="submit"
+                    onTouchEnd={(e) => { e.preventDefault(); sendMessage(); }}
                     disabled={!newMessage.trim() && !pendingFile}
                     className="bg-green-500 text-white p-2 rounded-full hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -649,7 +654,7 @@ export default function ChatWidget({ isAdmin = false, selectedUserId = null }) {
                     </svg>
                   </button>
                 </div>
-              </div>
+              </form>
             </>
           )}
         </div>
