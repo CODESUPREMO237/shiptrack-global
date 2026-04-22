@@ -38,6 +38,7 @@ export default function AdminDashboard() {
   const [loadError, setLoadError] = useState(null);
   const [pushStatus, setPushStatus] = useState("idle"); // idle | subscribing | subscribed | unsupported
   const [pushSubscription, setPushSubscription] = useState(null);
+  const [showIOSGuide, setShowIOSGuide] = useState(false);
 
   const shipmentTypes = ["Truckload", "Less than Truckload"];
   const shipmentModes = ["Land Shipping", "Air Shipping", "Sea Shipping"];
@@ -312,8 +313,67 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-orange-500 text-white shadow-xl">
+        {/* iOS Add-to-Home-Screen Guide Modal */}
+        {showIOSGuide && (
+          <div
+            className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center p-4"
+            onClick={() => setShowIOSGuide(false)}
+          >
+            <div
+              className="bg-white rounded-2xl w-full max-w-sm p-6 mb-4 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-gray-900">Enable Notifications on iPhone</h2>
+                <button
+                  onClick={() => setShowIOSGuide(false)}
+                  className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                >×</button>
+              </div>
+              <p className="text-sm text-gray-500 mb-5">
+                iPhone requires the site to be installed as an app before enabling push notifications. Follow these steps in <strong>Safari</strong>:
+              </p>
+              <ol className="space-y-4">
+                <li className="flex items-start gap-3">
+                  <span className="bg-purple-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold shrink-0">1</span>
+                  <div>
+                    <p className="font-semibold text-gray-800">Open in Safari</p>
+                    <p className="text-xs text-gray-500">Make sure you are using Safari, not Chrome or another browser.</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="bg-purple-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold shrink-0">2</span>
+                  <div>
+                    <p className="font-semibold text-gray-800">Tap the Share button</p>
+                    <p className="text-xs text-gray-500">The <span className="font-bold">⬆ Share</span> icon is at the bottom center of Safari (box with an arrow pointing up).</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="bg-purple-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold shrink-0">3</span>
+                  <div>
+                    <p className="font-semibold text-gray-800">Tap "Add to Home Screen"</p>
+                    <p className="text-xs text-gray-500">Scroll down in the share sheet and tap <span className="font-bold">Add to Home Screen</span>, then tap <span className="font-bold">Add</span>.</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="bg-purple-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold shrink-0">4</span>
+                  <div>
+                    <p className="font-semibold text-gray-800">Open the app & tap "Enable Alerts"</p>
+                    <p className="text-xs text-gray-500">Launch ShipTrack from your Home Screen icon, log in, then tap the <span className="font-bold">Enable Alerts</span> button.</p>
+                  </div>
+                </li>
+              </ol>
+              <button
+                onClick={() => setShowIOSGuide(false)}
+                className="mt-6 w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-xl transition duration-200"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        )}
+
+
           <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="flex items-center gap-3">
@@ -328,11 +388,13 @@ export default function AdminDashboard() {
               <div className="flex items-center gap-3">
                 {/* Push Notification Toggle */}
                 {pushStatus === "ios-browser" ? (
-                  <div className="flex items-center gap-2 bg-yellow-400/30 border border-yellow-300/50 backdrop-blur-sm px-4 py-2 rounded-lg text-white text-sm">
+                  <button
+                    onClick={() => setShowIOSGuide(true)}
+                    className="flex items-center gap-2 bg-yellow-400/30 hover:bg-yellow-400/50 border border-yellow-300/50 backdrop-blur-sm px-4 py-2 rounded-lg text-white text-sm transition duration-200"
+                  >
                     <Bell className="w-4 h-4 shrink-0" />
-                    <span className="hidden md:inline">Add to Home Screen for alerts</span>
-                    <span className="md:hidden">iOS: Add to Home Screen</span>
-                  </div>
+                    <span>Enable Alerts</span>
+                  </button>
                 ) : pushStatus !== "unsupported" && (
                   <button
                     onClick={pushStatus === "subscribed" ? disablePushNotifications : enablePushNotifications}
