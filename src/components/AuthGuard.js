@@ -10,40 +10,19 @@ export default function AuthGuard({ children }) {
   useEffect(() => {
     let active = true;
 
-    const verify = async () => {
-      // Supabase on mobile can take a moment to write the session to storage
-      // after login. Retry up to 5 times with 500ms gaps before giving up.
-      for (let attempt = 0; attempt < 5; attempt++) {
-        try {
-          const { data } = await supabase.auth.getSession();
-
-          if (!active) return;
-
-          if (data.session) {
-            // Valid session found — let the user through
-            setChecking(false);
-            return;
-          }
-        } catch {
-          // ignore and retry
-        }
-
-        // Wait 500ms before next attempt (total max wait: 2.5s)
-        await new Promise((r) => setTimeout(r, 500));
-      }
-
-      // All attempts failed — send back to login
-      if (active) router.replace("/admin");
-    };
-
-    verify();
-
-    // Listen for explicit sign-out
+    // onAuthStateChange fires immediately with the current session state —
+    // it does NOT wait for a network call and works reliably on mobile.
+    // The INITIAL_SESSION event gives us the session that was set during login.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return;
+
       if (event === "SIGNED_OUT" || !session) {
         router.replace("/admin");
+        return;
       }
+
+      // INITIAL_SESSION, SIGNED_IN, or TOKEN_REFRESHED with a valid session
+      setChecking(false);
     });
 
     return () => {
