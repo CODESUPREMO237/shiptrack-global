@@ -341,6 +341,12 @@ export default function AdminForm({ onSuccess }) {
 
     setSubmitting(true);
 
+    // Safety net — never stay stuck longer than 35 seconds
+    const safetyTimer = setTimeout(() => {
+      setSubmitting(false);
+      setSubmitError("Request timed out after 35 seconds. Please try again.");
+    }, 35000);
+
     try {
       const payload = {
         ...form,
@@ -387,6 +393,7 @@ export default function AdminForm({ onSuccess }) {
       console.error("Create shipment error:", err);
       setSubmitError(err.message || "An unexpected error occurred. Please try again.");
     } finally {
+      clearTimeout(safetyTimer);
       setSubmitting(false);
     }
   };

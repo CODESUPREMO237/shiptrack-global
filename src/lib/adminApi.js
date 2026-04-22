@@ -16,7 +16,7 @@ export async function getAdminAccessToken() {
   return token;
 }
 
-export async function adminFetch(input, init = {}) {
+export async function adminFetch(input, init = {}, timeoutMs = 30000) {
   const token = await getAdminAccessToken();
   const headers = new Headers(init.headers || {});
 
@@ -26,8 +26,23 @@ export async function adminFetch(input, init = {}) {
     headers.set("Content-Type", "application/json");
   }
 
-  return fetch(input, {
-    ...init,
-    headers,
-  });
+  // Abort after timeoutMs (default 30 seconds) so the UI never hangs forever
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(input, {
+      ...init,
+      headers,
+      signal: controller.signal,
+    });
+    return response;
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new Error("Request timed out. Please check your connection and try again.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
