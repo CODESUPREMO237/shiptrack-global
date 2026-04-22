@@ -18,14 +18,14 @@ export default function AdminLoginCard({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [debugInfo, setDebugInfo] = useState(null);
 
   useEffect(() => {
     let ignore = false;
 
     const checkSession = async () => {
-      const { data } = await supabase.auth.getUser();
-
-      if (!ignore && isAdminUser(data.user)) {
+      const { data } = await supabase.auth.getSession();
+      if (!ignore && isAdminUser(data.session?.user)) {
         router.replace("/admin/dashboard");
       }
     };
@@ -40,6 +40,7 @@ export default function AdminLoginCard({
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setDebugInfo(null);
 
     const emailError = validateEmail(email);
     if (emailError) {
@@ -64,19 +65,26 @@ export default function AdminLoginCard({
         throw signInError;
       }
 
-      // DEBUG: log the user object so we can see app_metadata in the console
-      console.log("[AdminLogin] signed-in user:", JSON.stringify(data.user, null, 2));
+      // Show the raw user metadata on screen for mobile debugging
+      const debugData = {
+        email: data.user?.email,
+        role: data.user?.role,
+        app_metadata: data.user?.app_metadata,
+        user_metadata: data.user?.user_metadata,
+        isAdmin: isAdminUser(data.user),
+      };
+      setDebugInfo(JSON.stringify(debugData, null, 2));
 
       if (!isAdminUser(data.user)) {
         await supabase.auth.signOut();
-        setError("This account does not have admin access. Check browser console for user details.");
+        setError("Account does not have admin access. See debug info below.");
         return;
       }
 
       router.replace("/admin/dashboard");
     } catch (err) {
-      console.error("Admin login error:", err);
       setError(err.message || "Unable to sign in.");
+      setDebugInfo(JSON.stringify({ error: err.message }, null, 2));
     } finally {
       setLoading(false);
     }
@@ -164,6 +172,14 @@ export default function AdminLoginCard({
               {error && (
                 <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {error}
+                </div>
+              )}
+
+              {/* ON-SCREEN DEBUG PANEL — remove after fixing */}
+              {debugInfo && (
+                <div className="rounded-2xl border border-yellow-300 bg-yellow-50 px-4 py-3">
+                  <p className="text-xs font-bold text-yellow-800 mb-2">🔍 DEBUG INFO (share this):</p>
+                  <pre className="text-xs text-yellow-900 whitespace-pre-wrap break-all">{debugInfo}</pre>
                 </div>
               )}
 
