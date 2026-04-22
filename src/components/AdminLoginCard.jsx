@@ -18,73 +18,45 @@ export default function AdminLoginCard({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [debugInfo, setDebugInfo] = useState(null);
 
   useEffect(() => {
     let ignore = false;
-
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (!ignore && isAdminUser(data.session?.user)) {
         router.replace("/admin/dashboard");
       }
     };
-
     checkSession();
-
-    return () => {
-      ignore = true;
-    };
+    return () => { ignore = true; };
   }, [router]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
-    setDebugInfo(null);
 
     const emailError = validateEmail(email);
-    if (emailError) {
-      setError(emailError);
-      return;
-    }
-
-    if (!password) {
-      setError("Password is required.");
-      return;
-    }
+    if (emailError) { setError(emailError); return; }
+    if (!password) { setError("Password is required."); return; }
 
     setLoading(true);
-
     try {
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
 
-      if (signInError) {
-        throw signInError;
-      }
-
-      // Show the raw user metadata on screen for mobile debugging
-      const debugData = {
-        email: data.user?.email,
-        role: data.user?.role,
-        app_metadata: data.user?.app_metadata,
-        user_metadata: data.user?.user_metadata,
-        isAdmin: isAdminUser(data.user),
-      };
-      setDebugInfo(JSON.stringify(debugData, null, 2));
+      if (signInError) throw signInError;
 
       if (!isAdminUser(data.user)) {
         await supabase.auth.signOut();
-        setError("Account does not have admin access. See debug info below.");
+        setError("This account does not have admin access.");
         return;
       }
 
       router.replace("/admin/dashboard");
     } catch (err) {
       setError(err.message || "Unable to sign in.");
-      setDebugInfo(JSON.stringify({ error: err.message }, null, 2));
     } finally {
       setLoading(false);
     }
@@ -99,7 +71,6 @@ export default function AdminLoginCard({
               <span className="h-2.5 w-2.5 rounded-full bg-[#ff6a13]" />
               ShipTrack Global
             </Link>
-
             <div className="mt-12">
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-orange-300">Admin Access</p>
               <h1 className="mt-4 text-4xl font-black leading-tight">Operational control for live shipments.</h1>
@@ -108,7 +79,6 @@ export default function AdminLoginCard({
                 in <span className="font-semibold text-white">app_metadata</span>.
               </p>
             </div>
-
             <div className="mt-10 space-y-4">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                 <div className="flex items-start gap-3">
@@ -172,14 +142,6 @@ export default function AdminLoginCard({
               {error && (
                 <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {error}
-                </div>
-              )}
-
-              {/* ON-SCREEN DEBUG PANEL — remove after fixing */}
-              {debugInfo && (
-                <div className="rounded-2xl border border-yellow-300 bg-yellow-50 px-4 py-3">
-                  <p className="text-xs font-bold text-yellow-800 mb-2">🔍 DEBUG INFO (share this):</p>
-                  <pre className="text-xs text-yellow-900 whitespace-pre-wrap break-all">{debugInfo}</pre>
                 </div>
               )}
 
