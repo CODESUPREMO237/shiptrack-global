@@ -64,9 +64,12 @@ export default function AdminLoginCard({
         throw signInError;
       }
 
+      // DEBUG: log the user object so we can see app_metadata in the console
+      console.log("[AdminLogin] signed-in user:", JSON.stringify(data.user, null, 2));
+
       if (!isAdminUser(data.user)) {
         await supabase.auth.signOut();
-        setError("This account does not have admin access.");
+        setError("This account does not have admin access. Check browser console for user details.");
         return;
       }
 
