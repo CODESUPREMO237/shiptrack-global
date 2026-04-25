@@ -28,6 +28,8 @@ export async function PATCH(req, { params }) {
       'originCity', 'destCity',
       // Dates
       'pickup_datetime', 'expected_delivery_datetime', 'delivery_datetime',
+      // Progress
+      'progress',
     ];
 
     const payload = {};

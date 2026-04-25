@@ -135,17 +135,10 @@ export default function ShipmentDetails({ initialShipment, isAdmin = false }) {
 
   const fmt = (v) => (v === null || v === undefined || v === '' ? '—' : v)
 
+  // Always use the admin-set progress from DB
   const calculatedProgress = useMemo(() => {
-    const originLat = shipment?.origin_lat ?? initialShipment?.current_lat
-    const originLng = shipment?.origin_lng ?? initialShipment?.current_lng
-    if (!originLat || !originLng || !shipment?.dest_lat || !shipment?.dest_lng || !location.lat || !location.lng) {
-      return shipment?.progress ?? 0
-    }
-    const totalDistance = calculateDistance(originLat, originLng, shipment.dest_lat, shipment.dest_lng)
-    const traveledDistance = calculateDistance(originLat, originLng, location.lat, location.lng)
-    const progressPct = totalDistance > 0 ? traveledDistance / totalDistance : 0
-    return Math.min(1, Math.max(progressPct, 0))
-  }, [shipment, location, initialShipment])
+    return shipment?.progress ?? 0
+  }, [shipment])
 
   const eta = useMemo(() => {
     if (!shipment?.created_at || !location.lat || !location.lng) return { time: 'Calculating...', hours: 'N/A' }
@@ -176,14 +169,8 @@ export default function ShipmentDetails({ initialShipment, isAdmin = false }) {
         if (!mounted.current) return
         setShipment(data)
         const statusStopsMovement = ['On Hold', 'Cancelled', 'Delivered'].includes(data.status)
-        if (!statusStopsMovement) {
-          await fetch('/api/shipments/simulate-movement', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code: initialShipment.code }),
-          })
-          setLocation({ lat: data.current_lat ?? null, lng: data.current_lng ?? null })
-        } else {
+        setLocation({ lat: data.current_lat ?? null, lng: data.current_lng ?? null })
+        if (statusStopsMovement) {
           setPolling(false)
         }
       } catch (err) {
@@ -251,12 +238,12 @@ export default function ShipmentDetails({ initialShipment, isAdmin = false }) {
             <div className="text-xl font-bold">
               {shipment.status === 'Delivered'
                 ? (shipment.delivery_datetime ? format(new Date(shipment.delivery_datetime), 'MMM d, yyyy') : 'Delivered')
-                : eta.time}
+                : shipment.expected_delivery_datetime
+                  ? format(new Date(shipment.expected_delivery_datetime), 'MMM d, yyyy')
+                  : eta.time}
             </div>
-            {shipment.expected_delivery_datetime && shipment.status !== 'Delivered' && (
-              <div className="text-white/60 text-xs mt-0.5">
-                Target: {format(new Date(shipment.expected_delivery_datetime), 'MMM d, yyyy')}
-              </div>
+            {shipment.status === 'On Hold' && (
+              <div className="text-white/60 text-xs mt-0.5">Shipment paused</div>
             )}
           </div>
         </div>
@@ -372,12 +359,33 @@ export default function ShipmentDetails({ initialShipment, isAdmin = false }) {
 
             {/* ETA row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[
-                { label: 'Est. travel time', value: `${eta.hours} hrs`, icon: Clock },
-                { label: 'Delivery time', value: shipment.delivery_datetime ? format(new Date(shipment.delivery_datetime), 'MMM d, HH:mm') : 'Not set', icon: Calendar },
-                { label: 'Est. arrival', value: shipment.status !== 'Delivered' ? eta.time : 'Delivered', icon: TrendingUp },
-                { label: 'Pickup time', value: shipment.pickup_datetime ? new Date(shipment.pickup_datetime).toLocaleString() : '—', icon: Package },
-              ].map((item, i) => {
+              {(() => {
+                // Calculate travel time from actual dates
+                let travelTimeDisplay = '—';
+                const pickupDt = shipment.pickup_datetime ? new Date(shipment.pickup_datetime) : null;
+                const expectedDt = shipment.expected_delivery_datetime ? new Date(shipment.expected_delivery_datetime) : null;
+                const actualDt = shipment.delivery_datetime ? new Date(shipment.delivery_datetime) : null;
+
+                const endDt = actualDt || expectedDt;
+                if (pickupDt && endDt && !isNaN(pickupDt) && !isNaN(endDt)) {
+                  const diffMs = endDt.getTime() - pickupDt.getTime();
+                  const diffHrs = Math.max(0, diffMs / (1000 * 60 * 60));
+                  if (diffHrs >= 24) {
+                    const days = Math.floor(diffHrs / 24);
+                    const hrs = Math.round(diffHrs % 24);
+                    travelTimeDisplay = `${days}d ${hrs}h`;
+                  } else {
+                    travelTimeDisplay = `${diffHrs.toFixed(1)} hrs`;
+                  }
+                }
+
+                return [
+                  { label: 'Est. travel time', value: travelTimeDisplay, icon: Clock },
+                  { label: 'Actual delivery', value: shipment.delivery_datetime ? format(new Date(shipment.delivery_datetime), 'MMM d, yyyy, h:mm a') : (shipment.status === 'Delivered' ? 'Delivered' : 'Pending'), icon: Calendar },
+                  { label: 'Est. arrival', value: shipment.status === 'Delivered' ? 'Delivered' : shipment.expected_delivery_datetime ? format(new Date(shipment.expected_delivery_datetime), 'MMM d, yyyy, h:mm a') : eta.time, icon: TrendingUp },
+                  { label: 'Pickup time', value: shipment.pickup_datetime ? format(new Date(shipment.pickup_datetime), 'MMM d, yyyy, h:mm a') : '—', icon: Package },
+                ];
+              })().map((item, i) => {
                 const Icon = item.icon
                 return (
                   <div key={i} className="bg-white rounded-lg border border-gray-200 p-3">

@@ -8,6 +8,8 @@ import AdminSecurityPanel from "@/components/AdminSecurityPanel";
 import ChatWidget from "@/components/ChatWidget";
 import { adminFetch, clearAdminToken } from "@/lib/adminApi";
 import { supabase } from "@/lib/supabaseClient";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { 
   Package, 
   LogOut, 
@@ -44,6 +46,8 @@ export default function AdminDashboard() {
   const [showTelegramSetup, setShowTelegramSetup] = useState(false);
   const [telegramChatId, setTelegramChatId] = useState("");
   const [telegramLabel, setTelegramLabel] = useState("");
+  const [savingFields, setSavingFields] = useState({});
+  const [dateInputs, setDateInputs] = useState({}); // { [code]: { pickup_datetime, expected_delivery_datetime, delivery_datetime } }
 
   const shipmentTypes = ["Truckload", "Less than Truckload"];
   const shipmentModes = ["Land Shipping", "Air Shipping", "Sea Shipping"];
@@ -329,14 +333,118 @@ export default function AdminDashboard() {
     return draft !== undefined ? draft : fallback;
   };
 
-  // Save all pending edits for a shipment at once
+  // Normalize any datetime string into valid YYYY-MM-DDTHH:MM for datetime-local input
+  const normalizeDatetime = (val) => {
+    if (!val) return "";
+    const s = String(val).trim();
+    // Fast path: already looks like ISO with T separator
+    if (s.includes("T")) {
+      const sliced = s.slice(0, 16);
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(sliced)) return sliced;
+    }
+    // Date-only: append midnight
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s + "T00:00";
+    // Fallback: try parsing with Date constructor (handles space-separated, offsets, etc.)
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+    return "";
+  };
+
+  // Save all pending edits for a shipment at once (single batched PATCH)
   const saveEditFields = async (code) => {
     const drafts = editInputs[code];
-    if (!drafts || Object.keys(drafts).length === 0) return;
-    for (const [field, value] of Object.entries(drafts)) {
-      await updateShipmentField(code, field, value);
+    if (!drafts || Object.keys(drafts).length === 0) {
+      showToast("No changes to save. Modify a field first.");
+      return;
     }
-    setEditInputs(prev => { const n = {...prev}; delete n[code]; return n; });
+    if (savingFields[code]) return; // already saving, prevent double-click
+
+    setSavingFields(prev => ({ ...prev, [code]: true }));
+    try {
+      const res = await adminFetch(`/api/shipments/${code}`, {
+        method: "PATCH",
+        body: JSON.stringify(drafts),
+      });
+      const updated = await res.json();
+      if (!res.ok) throw new Error(updated.error || "Update failed");
+      showToast(`Shipment ${code} updated successfully!`);
+      setEditInputs(prev => { const n = {...prev}; delete n[code]; return n; });
+      loadShipments();
+    } catch (err) {
+      console.error("Failed to update shipment:", err);
+      showToast("Failed to update shipment");
+    } finally {
+      setSavingFields(prev => { const n = {...prev}; delete n[code]; return n; });
+    }
+  };
+
+  // Dedicated handler for the Save Dates button — uses dateInputs state
+  const saveDateFields = async (code, shipment) => {
+    if (savingFields[code]) return;
+
+    const dateFields = ["pickup_datetime", "expected_delivery_datetime", "delivery_datetime"];
+    const payload = {};
+    let hasChanges = false;
+    const current = dateInputs[code] || {};
+
+    dateFields.forEach((field) => {
+      const stateVal = current[field]; // Date object | null | undefined
+      const dbRaw = shipment[field]; // ISO string | null
+      const dbDate = dbRaw ? new Date(dbRaw) : null;
+
+      if (stateVal === undefined) return; // not touched
+
+      if (stateVal === null && dbRaw) {
+        // User cleared a date that existed
+        payload[field] = null;
+        hasChanges = true;
+      } else if (stateVal && (!dbDate || stateVal.getTime() !== dbDate.getTime())) {
+        // User set or changed a date
+        payload[field] = stateVal.toISOString();
+        hasChanges = true;
+      }
+    });
+
+    if (!hasChanges) {
+      showToast("No date changes detected.");
+      return;
+    }
+
+    setSavingFields(prev => ({ ...prev, [code]: true }));
+    try {
+      const res = await adminFetch(`/api/shipments/${code}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+      const updated = await res.json();
+      if (!res.ok) throw new Error(updated.error || "Update failed");
+      showToast(`Dates for ${code} updated successfully!`);
+      // Clear date state so it re-initializes from fresh DB data
+      setDateInputs(prev => { const n = {...prev}; delete n[code]; return n; });
+      loadShipments();
+    } catch (err) {
+      console.error("Failed to update dates:", err);
+      showToast("Failed to update dates");
+    } finally {
+      setSavingFields(prev => { const n = {...prev}; delete n[code]; return n; });
+    }
+  };
+
+  // Helper to get/initialize a date value for the picker
+  const getDateInput = (code, field, shipment) => {
+    if (dateInputs[code]?.[field] !== undefined) return dateInputs[code][field];
+    const raw = shipment[field];
+    return raw ? new Date(raw) : null;
+  };
+
+  const setDateInput = (code, field, value) => {
+    setDateInputs(prev => ({
+      ...prev,
+      [code]: { ...(prev[code] || {}), [field]: value }
+    }));
   };
 
   const toggleShipmentExpanded = (code) => {
@@ -430,11 +538,14 @@ export default function AdminDashboard() {
         {showTelegramSetup && (
           <div
             className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center p-4"
-            onClick={() => setShowTelegramSetup(false)}
+            onMouseDown={(e) => { if (e.target === e.currentTarget) setShowTelegramSetup(false); }}
+            onTouchEnd={(e) => { if (e.target === e.currentTarget) setShowTelegramSetup(false); }}
           >
             <div
               className="bg-white rounded-2xl w-full max-w-sm p-6 mb-4 shadow-2xl max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
+              style={{ touchAction: 'manipulation' }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-gray-900">✈️ Telegram Notifications</h2>
@@ -491,27 +602,29 @@ export default function AdminDashboard() {
                     <p className="text-sm text-gray-700">Paste the Chat ID below and click Connect</p>
                   </li>
                 </ol>
-                <input
-                  type="text"
-                  placeholder="Name / Label (e.g. Stephane)"
-                  value={telegramLabel}
-                  onChange={(e) => setTelegramLabel(e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="text"
-                  placeholder="Telegram Chat ID (e.g. 123456789)"
-                  value={telegramChatId}
-                  onChange={(e) => setTelegramChatId(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && connectTelegram()}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  onClick={connectTelegram}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl transition duration-200"
-                >
-                  Connect & Test
-                </button>
+                <form onSubmit={(e) => { e.preventDefault(); connectTelegram(); }}>
+                  <input
+                    type="text"
+                    placeholder="Name / Label (e.g. Stephane)"
+                    value={telegramLabel}
+                    onChange={(e) => setTelegramLabel(e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Telegram Chat ID (e.g. 123456789)"
+                    value={telegramChatId}
+                    onChange={(e) => setTelegramChatId(e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    type="submit"
+                    className="w-full bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-semibold py-3 rounded-xl transition duration-200"
+                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                  >
+                    Connect &amp; Test
+                  </button>
+                </form>
               </div>
             </div>
           </div>
@@ -812,8 +925,8 @@ export default function AdminDashboard() {
                           </div>
                         </div>
 
-                        {/* Status and Carrier */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Status, Progress and Carrier */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
                             <select
@@ -828,6 +941,66 @@ export default function AdminDashboard() {
                           </div>
 
                           <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                              Journey Progress
+                            </label>
+                            <div className="flex items-center gap-2 mb-2">
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={Math.round((getEditField(shipment.code, "progress", shipment.progress || 0)) * 100)}
+                                onChange={(e) => setEditField(shipment.code, "progress", parseInt(e.target.value) / 100)}
+                                className="flex-1 h-2 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                              />
+                              <span className="text-sm font-bold text-purple-700 min-w-[3rem] text-right">
+                                {Math.round((getEditField(shipment.code, "progress", shipment.progress || 0)) * 100)}%
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                placeholder="0-100"
+                                value={Math.round((getEditField(shipment.code, "progress", shipment.progress || 0)) * 100)}
+                                onChange={(e) => {
+                                  const val = Math.max(0, Math.min(100, parseInt(e.target.value) || 0));
+                                  setEditField(shipment.code, "progress", val / 100);
+                                }}
+                                className="w-20 border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-gray-900 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent text-center"
+                              />
+                              <button
+                                onClick={() => {
+                                  const val = getEditField(shipment.code, "progress", shipment.progress || 0);
+                                  updateShipmentField(shipment.code, "progress", val);
+                                }}
+                                className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 transition font-medium"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditField(shipment.code, "progress", 0);
+                                  updateShipmentField(shipment.code, "progress", 0);
+                                }}
+                                className="text-xs bg-red-100 text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-200 transition font-medium"
+                              >
+                                Reset
+                              </button>
+                            </div>
+                            {shipment.status === 'On Hold' && (
+                              <p className="text-xs text-amber-600 mt-1">⚠️ Progress is frozen while on hold</p>
+                            )}
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 mt-2 text-xs text-blue-800 space-y-0.5">
+                              <p><strong>📦 Picked up</strong> → set to <strong>10%</strong></p>
+                              <p><strong>🚚 In transit</strong> → update to <strong>40%</strong></p>
+                              <p><strong>📍 Getting close</strong> → update to <strong>80%</strong></p>
+                              <p><strong>✅ Delivered</strong> → set to <strong>100%</strong> & status "Delivered"</p>
+                            </div>
+                          </div>
+
+                          <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">Carrier Reference</label>
                             <div className="flex gap-2">
                               <input
@@ -836,10 +1009,11 @@ export default function AdminDashboard() {
                                 onChange={(e) => setEditField(shipment.code, "carrier_ref", e.target.value)}
                               />
                               <button
-                                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition text-sm font-semibold"
+                                className={`px-4 py-2 rounded-lg transition text-sm font-semibold ${savingFields[shipment.code] ? 'bg-purple-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'} text-white`}
                                 onClick={() => saveEditFields(shipment.code)}
+                                disabled={!!savingFields[shipment.code]}
                               >
-                                Save
+                                {savingFields[shipment.code] ? 'Saving…' : 'Save'}
                               </button>
                             </div>
                           </div>
@@ -915,10 +1089,11 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                           <button
-                            className="mt-4 bg-gradient-to-r from-purple-600 to-orange-500 text-white px-6 py-2 rounded-lg hover:shadow-lg transition duration-200 font-semibold"
+                            className={`mt-4 text-white px-6 py-2 rounded-lg transition duration-200 font-semibold ${savingFields[shipment.code] ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-purple-600 to-orange-500 hover:shadow-lg'}`}
                             onClick={() => saveEditFields(shipment.code)}
+                            disabled={!!savingFields[shipment.code]}
                           >
-                            Save Pricing
+                            {savingFields[shipment.code] ? 'Saving…' : 'Save Pricing'}
                           </button>
                         </div>
 
@@ -991,10 +1166,11 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                           <button
-                            className="mt-4 bg-gradient-to-r from-purple-600 to-orange-500 text-white px-6 py-2 rounded-lg hover:shadow-lg transition duration-200 font-semibold"
+                            className={`mt-4 text-white px-6 py-2 rounded-lg transition duration-200 font-semibold ${savingFields[shipment.code] ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-purple-600 to-orange-500 hover:shadow-lg'}`}
                             onClick={() => saveEditFields(shipment.code)}
+                            disabled={!!savingFields[shipment.code]}
                           >
-                            Save Shipper & Receiver
+                            {savingFields[shipment.code] ? 'Saving…' : 'Save Shipper & Receiver'}
                           </button>
                         </div>
 
@@ -1020,50 +1196,81 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                           <button
-                            className="mt-4 bg-gradient-to-r from-purple-600 to-orange-500 text-white px-6 py-2 rounded-lg hover:shadow-lg transition duration-200 font-semibold"
+                            className={`mt-4 text-white px-6 py-2 rounded-lg transition duration-200 font-semibold ${savingFields[shipment.code] ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-purple-600 to-orange-500 hover:shadow-lg'}`}
                             onClick={() => saveEditFields(shipment.code)}
+                            disabled={!!savingFields[shipment.code]}
                           >
-                            Save Locations
+                            {savingFields[shipment.code] ? 'Saving…' : 'Save Locations'}
                           </button>
                         </div>
 
                         {/* Dates */}
                         <div className="border-t pt-6">
-                          <h4 className="text-lg font-bold text-gray-900 mb-4">📅 Dates</h4>
+                          <h4 className="text-lg font-bold text-gray-900 mb-2">📅 Dates</h4>
+                          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-4 text-xs text-purple-800 space-y-1">
+                            <p><strong>Pickup:</strong> Set when you collect the package from the shipper.</p>
+                            <p><strong>Expected Delivery:</strong> Your estimated delivery date for the receiver.</p>
+                            <p><strong>Actual Delivery:</strong> Leave empty until delivered — set only when the receiver confirms receipt.</p>
+                          </div>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                               <label className="block text-sm font-semibold text-gray-700 mb-2">Pickup Date & Time</label>
-                              <input
-                                type="datetime-local"
-                                className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                value={getEditField(shipment.code, "pickup_datetime", shipment.pickup_datetime ? shipment.pickup_datetime.slice(0,16) : "")}
-                                onChange={(e) => setEditField(shipment.code, "pickup_datetime", e.target.value ? new Date(e.target.value).toISOString() : null)}
-                              />
+                              <div className="relative">
+                                <DatePicker
+                                  selected={getDateInput(shipment.code, "pickup_datetime", shipment)}
+                                  onChange={(date) => setDateInput(shipment.code, "pickup_datetime", date)}
+                                  showTimeSelect
+                                  timeFormat="hh:mm aa"
+                                  timeIntervals={15}
+                                  dateFormat="MMM d, yyyy h:mm aa"
+                                  placeholderText="Select pickup date & time"
+                                  className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                                  isClearable
+                                  popperPlacement="bottom-start"
+                                />
+                              </div>
                             </div>
                             <div>
                               <label className="block text-sm font-semibold text-gray-700 mb-2">Expected Delivery</label>
-                              <input
-                                type="datetime-local"
-                                className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                value={getEditField(shipment.code, "expected_delivery_datetime", shipment.expected_delivery_datetime ? shipment.expected_delivery_datetime.slice(0,16) : "")}
-                                onChange={(e) => setEditField(shipment.code, "expected_delivery_datetime", e.target.value ? new Date(e.target.value).toISOString() : null)}
-                              />
+                              <div className="relative">
+                                <DatePicker
+                                  selected={getDateInput(shipment.code, "expected_delivery_datetime", shipment)}
+                                  onChange={(date) => setDateInput(shipment.code, "expected_delivery_datetime", date)}
+                                  showTimeSelect
+                                  timeFormat="hh:mm aa"
+                                  timeIntervals={15}
+                                  dateFormat="MMM d, yyyy h:mm aa"
+                                  placeholderText="Select expected delivery date"
+                                  className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                                  isClearable
+                                  popperPlacement="bottom-start"
+                                />
+                              </div>
                             </div>
                             <div>
                               <label className="block text-sm font-semibold text-gray-700 mb-2">Actual Delivery</label>
-                              <input
-                                type="datetime-local"
-                                className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                value={getEditField(shipment.code, "delivery_datetime", shipment.delivery_datetime ? shipment.delivery_datetime.slice(0,16) : "")}
-                                onChange={(e) => setEditField(shipment.code, "delivery_datetime", e.target.value ? new Date(e.target.value).toISOString() : null)}
-                              />
+                              <div className="relative">
+                                <DatePicker
+                                  selected={getDateInput(shipment.code, "delivery_datetime", shipment)}
+                                  onChange={(date) => setDateInput(shipment.code, "delivery_datetime", date)}
+                                  showTimeSelect
+                                  timeFormat="hh:mm aa"
+                                  timeIntervals={15}
+                                  dateFormat="MMM d, yyyy h:mm aa"
+                                  placeholderText="Set when actually delivered"
+                                  className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                                  isClearable
+                                  popperPlacement="bottom-start"
+                                />
+                              </div>
                             </div>
                           </div>
                           <button
-                            className="mt-4 bg-gradient-to-r from-purple-600 to-orange-500 text-white px-6 py-2 rounded-lg hover:shadow-lg transition duration-200 font-semibold"
-                            onClick={() => saveEditFields(shipment.code)}
+                            className={`mt-4 text-white px-6 py-2 rounded-lg transition duration-200 font-semibold ${savingFields[shipment.code] ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-purple-600 to-orange-500 hover:shadow-lg'}`}
+                            onClick={() => saveDateFields(shipment.code, shipment)}
+                            disabled={!!savingFields[shipment.code]}
                           >
-                            Save Dates
+                            {savingFields[shipment.code] ? 'Saving…' : 'Save Dates'}
                           </button>
                         </div>
 
