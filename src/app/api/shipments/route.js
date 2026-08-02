@@ -109,6 +109,10 @@ export async function POST(req) {
       current_lng: data.current_lng ? parseFloat(data.current_lng) : data.origin_lng ? parseFloat(data.origin_lng) : null,
       dest_lat: data.dest_lat ? parseFloat(data.dest_lat) : null,
       dest_lng: data.dest_lng ? parseFloat(data.dest_lng) : null,
+
+      // Origin & Destination (city names — previously only coordinates were saved here)
+      originCity: data.originCity || null,
+      destCity: data.destCity || null,
       
       // Tracking & Delivery
       pickup_datetime: data.pickup_datetime || null,

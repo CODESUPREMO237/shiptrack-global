@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { adminFetch } from "@/lib/adminApi";
+import InvoiceModal from "./InvoiceModal";
 
 import { 
   Package, 
@@ -162,6 +163,7 @@ export default function AdminForm({ onSuccess }) {
   const [showDestDropdown, setShowDestDropdown] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [createdInvoice, setCreatedInvoice] = useState(null); // { shipment, products } snapshot for the invoice modal
 
   const [form, setForm] = useState({
     ...EMPTY_FORM,
@@ -375,6 +377,13 @@ export default function AdminForm({ onSuccess }) {
         throw new Error(data.error || data.details || `Server error (${res.status})`);
       }
 
+      // Snapshot the just-created shipment (form + products) so we can show its invoice,
+      // since the API only returns { code, message, summary } and not the full record.
+      setCreatedInvoice({
+        shipment: { ...form, code: data.code },
+        products,
+      });
+
       // Reset form on success
       setForm({
         ...EMPTY_FORM,
@@ -388,7 +397,8 @@ export default function AdminForm({ onSuccess }) {
       setProducts([{ ...EMPTY_PRODUCT }]);
       setSubmitError("");
 
-      onSuccess?.();
+      // onSuccess (switches tab, refreshes list, shows toast) fires once the admin
+      // closes the invoice modal, so they see the invoice before leaving this screen.
     } catch (err) {
       console.error("Create shipment error:", err);
       setSubmitError(err.message || "An unexpected error occurred. Please try again.");
@@ -1233,6 +1243,18 @@ export default function AdminForm({ onSuccess }) {
           {submitting ? "Creating Shipment..." : "Create Shipment"}
         </button>
       </div>
+
+      {/* Invoice modal — shown right after a successful shipment creation */}
+      {createdInvoice && (
+        <InvoiceModal
+          shipment={createdInvoice.shipment}
+          products={createdInvoice.products}
+          onClose={() => {
+            setCreatedInvoice(null);
+            onSuccess?.();
+          }}
+        />
+      )}
 
       {/* Loading Indicator */}
       {!citiesLoaded && (

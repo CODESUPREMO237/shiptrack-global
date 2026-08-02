@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthGuard from "@/components/AuthGuard";
 import AdminForm from "@/components/AdminForm";
+import InvoiceModal from "@/components/InvoiceModal";
 import AdminSecurityPanel from "@/components/AdminSecurityPanel";
 import ChatWidget from "@/components/ChatWidget";
 import { adminFetch, clearAdminToken } from "@/lib/adminApi";
@@ -23,7 +24,8 @@ import {
   Mail,
   ShieldCheck,
   Bell,
-  BellOff
+  BellOff,
+  Receipt
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -48,6 +50,7 @@ export default function AdminDashboard() {
   const [telegramLabel, setTelegramLabel] = useState("");
   const [savingFields, setSavingFields] = useState({});
   const [dateInputs, setDateInputs] = useState({}); // { [code]: { pickup_datetime, expected_delivery_datetime, delivery_datetime } }
+  const [invoiceShipment, setInvoiceShipment] = useState(null); // shipment currently shown in the InvoiceModal
 
   const shipmentTypes = ["Truckload", "Less than Truckload"];
   const shipmentModes = ["Land Shipping", "Air Shipping", "Sea Shipping"];
@@ -232,10 +235,20 @@ export default function AdminDashboard() {
       }
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load shipments");
-      const safeData = data.map((s) => ({
-        ...s,
-        products: Array.isArray(s.products) ? s.products : [],
-      }));
+      const safeData = data.map((s) => {
+        let parsedProducts = s.products;
+        if (typeof parsedProducts === "string") {
+          try {
+            parsedProducts = JSON.parse(parsedProducts);
+          } catch {
+            parsedProducts = [];
+          }
+        }
+        return {
+          ...s,
+          products: Array.isArray(parsedProducts) ? parsedProducts : [],
+        };
+      });
       setShipments(safeData);
     } catch (err) {
       console.error("Error loading shipments:", err);
@@ -706,49 +719,49 @@ export default function AdminDashboard() {
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex gap-2 mt-6 border-b border-white/20">
+            <div className="flex gap-2 mt-6 border-b border-white/20 overflow-x-auto">
               <button
                 onClick={() => setActiveTab("shipments")}
-                className={`flex items-center gap-2 px-6 py-3 rounded-t-lg transition duration-200 ${
+                className={`flex items-center gap-2 px-4 md:px-6 py-3 rounded-t-lg transition duration-200 whitespace-nowrap shrink-0 text-sm md:text-base ${
                   activeTab === "shipments"
                     ? "bg-white text-purple-600 font-semibold"
                     : "text-white hover:bg-white/10"
                 }`}
               >
-                <Truck className="w-4 h-4" />
+                <Truck className="w-4 h-4 shrink-0" />
                 Shipments ({shipments.length})
               </button>
               <button
                 onClick={() => setActiveTab("create")}
-                className={`flex items-center gap-2 px-6 py-3 rounded-t-lg transition duration-200 ${
+                className={`flex items-center gap-2 px-4 md:px-6 py-3 rounded-t-lg transition duration-200 whitespace-nowrap shrink-0 text-sm md:text-base ${
                   activeTab === "create"
                     ? "bg-white text-purple-600 font-semibold"
                     : "text-white hover:bg-white/10"
                 }`}
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-4 h-4 shrink-0" />
                 Create New
               </button>
               <button
                 onClick={() => setActiveTab("feedbacks")}
-                className={`flex items-center gap-2 px-6 py-3 rounded-t-lg transition duration-200 ${
+                className={`flex items-center gap-2 px-4 md:px-6 py-3 rounded-t-lg transition duration-200 whitespace-nowrap shrink-0 text-sm md:text-base ${
                   activeTab === "feedbacks"
                     ? "bg-white text-purple-600 font-semibold"
                     : "text-white hover:bg-white/10"
                 }`}
               >
-                <MessageSquare className="w-4 h-4" />
+                <MessageSquare className="w-4 h-4 shrink-0" />
                 Feedbacks ({feedbacks.length})
               </button>
               <button
                 onClick={() => setActiveTab("security")}
-                className={`flex items-center gap-2 px-6 py-3 rounded-t-lg transition duration-200 ${
+                className={`flex items-center gap-2 px-4 md:px-6 py-3 rounded-t-lg transition duration-200 whitespace-nowrap shrink-0 text-sm md:text-base ${
                   activeTab === "security"
                     ? "bg-white text-purple-600 font-semibold"
                     : "text-white hover:bg-white/10"
                 }`}
               >
-                <ShieldCheck className="w-4 h-4" />
+                <ShieldCheck className="w-4 h-4 shrink-0" />
                 Account Security
               </button>
             </div>
@@ -869,14 +882,23 @@ export default function AdminDashboard() {
                             </span>
                           </div>
                         </div>
-                        <button
-                          onClick={() => toggleShipmentExpanded(shipment.code)}
-                          className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg hover:bg-gray-50 transition text-purple-600 font-medium"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                          {expandedShipments[shipment.code] ? "Hide Details" : "Edit Details"}
-                          {expandedShipments[shipment.code] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setInvoiceShipment(shipment)}
+                            className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg hover:bg-gray-50 transition text-emerald-600 font-medium border border-emerald-200"
+                          >
+                            <Receipt className="w-4 h-4" />
+                            Invoice
+                          </button>
+                          <button
+                            onClick={() => toggleShipmentExpanded(shipment.code)}
+                            className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg hover:bg-gray-50 transition text-purple-600 font-medium"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                            {expandedShipments[shipment.code] ? "Hide Details" : "Edit Details"}
+                            {expandedShipments[shipment.code] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -1414,6 +1436,15 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
+
+        {/* Invoice Modal — for viewing/copying/downloading/sharing any shipment's invoice */}
+        {invoiceShipment && (
+          <InvoiceModal
+            shipment={invoiceShipment}
+            products={invoiceShipment.products}
+            onClose={() => setInvoiceShipment(null)}
+          />
+        )}
 
         {/* Chat Widget */}
         <ChatWidget isAdmin={true} />
