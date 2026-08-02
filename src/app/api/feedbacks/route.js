@@ -54,7 +54,9 @@ export async function POST(req) {
 
     // Send email notification
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || "465"),
+      secure: true,
       auth: {
         user: process.env.FEEDBACK_EMAIL,
         pass: process.env.FEEDBACK_PASSWORD,
@@ -62,8 +64,9 @@ export async function POST(req) {
     });
 
     await transporter.sendMail({
-      from: email,
-      to: "shiptrackglobal@gmail.com",
+      from: process.env.FEEDBACK_EMAIL,
+      replyTo: email,
+      to: process.env.FEEDBACK_EMAIL,
       subject: `Feedback from ${name}`,
       text: feedback,
       html: `<p>${feedback}</p><p>From: ${name} (${email})</p>`,
