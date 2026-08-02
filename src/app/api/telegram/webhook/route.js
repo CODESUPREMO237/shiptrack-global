@@ -1,7 +1,7 @@
 // src/app/api/telegram/webhook/route.js
 // This endpoint receives messages from the Telegram bot.
 // Register it as your bot's webhook URL:
-// https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://shiptrack-global.vercel.app/api/telegram/webhook
+// https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://shiptrackglobal.com/api/telegram/webhook
 
 import { NextResponse } from 'next/server';
 

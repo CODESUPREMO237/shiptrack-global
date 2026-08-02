@@ -21,7 +21,7 @@ export async function sendAdminCommentEmail(to, shipmentCode, comment) {
       <blockquote style="border-left: 3px solid #ff0000; padding-left: 10px; color: #b91c1c;">
         ${comment}
       </blockquote>
-      <p>You can check the full shipment details <a href="https://hiptrack-global.vercel.app/track/${shipmentCode}" style="color: #2563eb; text-decoration: underline;">here</a>.</p>
+      <p>You can check the full shipment details <a href="${process.env.NEXT_PUBLIC_SITE_URL}/track/${shipmentCode}" style="color: #2563eb; text-decoration: underline;">here</a>.</p>
       <p>– HipTrack Team</p>
     `,
   };
