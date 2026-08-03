@@ -200,7 +200,7 @@ const ShipmentInvoice = forwardRef(function ShipmentInvoice({ data }, ref) {
           </div>
           {inv.insurance && (
             <div className="flex justify-between py-1 text-gray-600">
-              <span>Insurance ({formatMoney(inv.insurance_value, inv.currency)} covered)</span>
+              <span>Insurance ({formatMoney(inv.insurance_value, inv.currency)} — {inv.payment_status === "Paid" ? "covered" : inv.payment_status.toLowerCase()})</span>
               <span>{formatMoney((parseFloat(inv.declared_value) || 0) * 0.01, inv.currency)}</span>
             </div>
           )}

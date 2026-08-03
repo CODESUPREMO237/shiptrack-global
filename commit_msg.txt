@@ -1,0 +1,24 @@
+@"
+feat: add shipment invoice (copy/download/share) + admin dashboard fixes
+
+- Add ShipmentInvoice + InvoiceModal components: branded invoice with
+  copy-to-clipboard, PNG/PDF download, and native share sheet
+- Show invoice automatically after creating a shipment; add Invoice
+  button to each shipment card in the dashboard
+- Switch html2canvas to html2canvas-pro to support Tailwind v4's
+  oklch/lab color functions during image capture
+- Use real ShipTrack Global logo (inlined SVG) in the invoice instead
+  of a generic icon
+- Add coordinate fallback for origin/destination city display on
+  older shipments; persist originCity/destCity on shipment creation
+  in POST /api/shipments (previously only coordinates were saved)
+- Fix loadShipments discarding the products array when Supabase
+  returns it as a JSON string instead of an already-parsed array
+- Fix Payment Mode edit dropdown to match the full option list used
+  in the Create Shipment form; fix invalid fallback default
+- Fix invoice always showing insurance as covered regardless of
+  actual payment status; now reflects Pending/Partial/Paid/Refunded
+- Make header/tab navigation responsive
+- Read tracking domain from NEXT_PUBLIC_SITE_URL instead of a
+  hardcoded QR code domain
+"@ | Out-File -Encoding utf8 commit_msg.txt

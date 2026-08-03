@@ -54,7 +54,7 @@ export default function AdminDashboard() {
 
   const shipmentTypes = ["Truckload", "Less than Truckload"];
   const shipmentModes = ["Land Shipping", "Air Shipping", "Sea Shipping"];
-  const paymentModes = ["CASH", "Credit Card", "Bank Transfer"];
+  const paymentModes = ["PAYPAL", "CREDIT CARD", "CASH APP", "ZELLE", "VENMO", "APPLE PAY", "BITCOIN", "BANK TRANSFER"];
   const statusOptions = ["On Hold", "In Transit", "Delivered", "Cancelled"];
 
   useEffect(() => {
@@ -937,7 +937,7 @@ export default function AdminDashboard() {
                             <p className="text-xs text-blue-600 font-semibold mb-1">Payment Mode</p>
                             <select
                               className="w-full bg-white border-0 rounded-lg px-3 py-2 text-gray-900 font-medium focus:ring-2 focus:ring-blue-500"
-                              value={shipment.payment_mode || "CASH"}
+                              value={shipment.payment_mode || "PAYPAL"}
                               onChange={(e) => updateShipmentField(shipment.code, "payment_mode", e.target.value)}
                             >
                               {paymentModes.map((mode) => (
