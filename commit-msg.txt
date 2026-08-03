@@ -1,0 +1,26 @@
+feat: add cross-device draft autosave for shipment creation form
+
+Previously, refreshing the admin "Create Shipment" page lost all
+unsaved progress. This adds autosave with two layers:
+
+- localStorage: instant, saves 500ms after any change, restores on
+  page load with zero latency
+- Server (Supabase): saves 1.5s after any change, synced per-admin
+  via a new admin_shipment_drafts table so a draft started on one
+  device/browser is available on another
+
+A banner shows when a draft was restored, with a "Discard & start
+fresh" option. The draft is automatically cleared after a shipment
+is successfully created.
+
+- api/shipments/draft/route.js: new GET/PUT/DELETE endpoints for
+  reading, saving, and clearing the current admin's draft
+- components/AdminForm.jsx: draft load/restore on mount, debounced
+  local + server autosave, discard button, "last saved" indicator
+
+Requires a corresponding DB migration:
+  create table if not exists admin_shipment_drafts (
+    admin_user_id uuid primary key,
+    draft_data jsonb not null,
+    updated_at timestamptz not null default now()
+  );

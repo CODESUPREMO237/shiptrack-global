@@ -151,29 +151,74 @@ const EMPTY_FORM = {
 const EMPTY_PRODUCT = { piece_type: "", product: "", description: "", qty: 1, length_cm: 0, width_cm: 0, height_cm: 0, weight_kg: 0 };
 
 // ============================================
+// DRAFT PERSISTENCE (localStorage)
+// ============================================
+
+const DRAFT_STORAGE_KEY = "shiptrack_admin_shipment_draft_v1";
+
+function loadDraft() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveDraft(draft) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+  } catch {
+    // Storage full/unavailable — autosave is a convenience, fail silently
+  }
+}
+
+function clearDraft() {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+  } catch {}
+}
+
+// ============================================
 // MAIN COMPONENT
 // ============================================
 
 export default function AdminForm({ onSuccess }) {
   const [cities, setCities] = useState([]);
   const [citiesLoaded, setCitiesLoaded] = useState(false);
-  const [originSearch, setOriginSearch] = useState("");
-  const [destSearch, setDestSearch] = useState("");
+
+  // Load any saved draft once, synchronously, so the first render already reflects it
+  const [initialDraft] = useState(() => loadDraft());
+  const [draftRestored, setDraftRestored] = useState(!!initialDraft);
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [hasSyncedFromServer, setHasSyncedFromServer] = useState(false);
+
+  const [originSearch, setOriginSearch] = useState(initialDraft?.originSearch || "");
+  const [destSearch, setDestSearch] = useState(initialDraft?.destSearch || "");
   const [showOriginDropdown, setShowOriginDropdown] = useState(false);
   const [showDestDropdown, setShowDestDropdown] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [createdInvoice, setCreatedInvoice] = useState(null); // { shipment, products } snapshot for the invoice modal
 
-  const [form, setForm] = useState({
-    ...EMPTY_FORM,
-    carrier_ref: generateCarrierRef(),
-    client_id: generateClientId(),
-    current_vehicle_id: generateVehicleId(),
-    current_driver_id: generateDriverId(),
-  });
+  const [form, setForm] = useState(
+    initialDraft?.form || {
+      ...EMPTY_FORM,
+      carrier_ref: generateCarrierRef(),
+      client_id: generateClientId(),
+      current_vehicle_id: generateVehicleId(),
+      current_driver_id: generateDriverId(),
+    }
+  );
 
-  const [products, setProducts] = useState([{ ...EMPTY_PRODUCT }]);
+  const [products, setProducts] = useState(
+    Array.isArray(initialDraft?.products) && initialDraft.products.length
+      ? initialDraft.products
+      : [{ ...EMPTY_PRODUCT }]
+  );
 
   const [specialHandlingOptions] = useState([
     "Fragile", "Perishable", "Hazardous", "Temperature Controlled", "High Value"
@@ -208,6 +253,63 @@ export default function AdminForm({ onSuccess }) {
         });
     }
   }, [citiesLoaded]);
+
+  // Autosave the in-progress shipment as a draft whenever it changes (fast, local)
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      saveDraft({ form, products, originSearch, destSearch });
+      setLastSavedAt(Date.now());
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [form, products, originSearch, destSearch]);
+
+  // On mount: pull the admin's draft from the server (cross-device sync).
+  // The localStorage-restored state above renders instantly while this resolves,
+  // and gets overwritten here if the server has a (possibly newer) draft.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await adminFetch("/api/shipments/draft");
+        if (!res.ok) throw new Error("Failed to load draft");
+        const serverDraft = await res.json();
+        if (cancelled) return;
+        if (serverDraft && serverDraft.draft_data) {
+          const d = serverDraft.draft_data;
+          if (d.form) setForm(d.form);
+          if (Array.isArray(d.products) && d.products.length) setProducts(d.products);
+          setOriginSearch(d.originSearch || "");
+          setDestSearch(d.destSearch || "");
+          setDraftRestored(true);
+        }
+      } catch (err) {
+        console.error("Failed to sync draft from server:", err);
+        // Not fatal — the localStorage draft (if any) still works locally
+      } finally {
+        if (!cancelled) setHasSyncedFromServer(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Push draft to the server (debounced, longer interval than local save).
+  // Gated on hasSyncedFromServer so we never overwrite a real server draft
+  // with a blank/default form before the initial fetch above has resolved.
+  useEffect(() => {
+    if (!hasSyncedFromServer) return;
+    const timeout = setTimeout(async () => {
+      try {
+        const res = await adminFetch("/api/shipments/draft", {
+          method: "PUT",
+          body: JSON.stringify({ form, products, originSearch, destSearch }),
+        });
+        if (res.ok) setLastSavedAt(Date.now());
+      } catch (err) {
+        console.error("Failed to sync draft to server:", err);
+      }
+    }, 1500);
+    return () => clearTimeout(timeout);
+  }, [form, products, originSearch, destSearch, hasSyncedFromServer]);
 
   const filteredOriginCities = useMemo(() => {
     if (!originSearch || originSearch.length < 2) return [];
@@ -385,6 +487,10 @@ export default function AdminForm({ onSuccess }) {
       });
 
       // Reset form on success
+      clearDraft();
+      adminFetch("/api/shipments/draft", { method: "DELETE" }).catch(() => {});
+      setDraftRestored(false);
+      setLastSavedAt(null);
       setForm({
         ...EMPTY_FORM,
         carrier_ref: generateCarrierRef(),
@@ -420,7 +526,38 @@ export default function AdminForm({ onSuccess }) {
 
   return (
     <div className="space-y-8 p-6">
-      
+
+      {/* Draft restored banner */}
+      {draftRestored && (
+        <div className="flex items-center justify-between gap-3 bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <p className="text-sm text-blue-800">
+            📝 Restored your unsaved draft — synced from your account.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              clearDraft();
+              adminFetch("/api/shipments/draft", { method: "DELETE" }).catch(() => {});
+              setForm({
+                ...EMPTY_FORM,
+                carrier_ref: generateCarrierRef(),
+                client_id: generateClientId(),
+                current_vehicle_id: generateVehicleId(),
+                current_driver_id: generateDriverId(),
+              });
+              setProducts([{ ...EMPTY_PRODUCT }]);
+              setOriginSearch("");
+              setDestSearch("");
+              setDraftRestored(false);
+              setLastSavedAt(null);
+            }}
+            className="text-sm font-medium text-blue-700 hover:text-blue-900 underline whitespace-nowrap"
+          >
+            Discard &amp; start fresh
+          </button>
+        </div>
+      )}
+
       {/* Client Context Section */}
       <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 p-6 rounded-xl border border-indigo-200">
         <div className="flex items-center gap-3 mb-6">
@@ -1232,7 +1369,10 @@ export default function AdminForm({ onSuccess }) {
       )}
 
       {/* Submit Button */}
-      <div className="flex justify-end gap-4">
+      <div className="flex justify-between items-center gap-4">
+        <p className="text-xs text-gray-400">
+          {lastSavedAt ? `Draft auto-saved at ${new Date(lastSavedAt).toLocaleTimeString()}` : ""}
+        </p>
         <button 
           type="button"
           onClick={handleSubmit}
