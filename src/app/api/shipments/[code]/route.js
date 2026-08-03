@@ -25,7 +25,7 @@ export async function PATCH(req, { params }) {
       'shipper_name', 'shipper_address', 'shipper_phone',
       'receiver_name', 'receiver_address', 'receiver_phone', 'receiver_email',
       // Origin & Destination
-      'originCity', 'destCity',
+      'origin_city', 'dest_city',
       // Dates
       'pickup_datetime', 'expected_delivery_datetime', 'delivery_datetime',
       // Progress

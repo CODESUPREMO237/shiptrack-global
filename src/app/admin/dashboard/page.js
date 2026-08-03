@@ -1204,16 +1204,16 @@ export default function AdminDashboard() {
                               <label className="block text-sm font-semibold text-gray-700 mb-2">Origin City</label>
                               <input
                                 className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                value={getEditField(shipment.code, "originCity", shipment.originCity || shipment.location || "")}
-                                onChange={(e) => setEditField(shipment.code, "originCity", e.target.value)}
+                                value={getEditField(shipment.code, "origin_city", shipment.origin_city || shipment.location || "")}
+                                onChange={(e) => setEditField(shipment.code, "origin_city", e.target.value)}
                               />
                             </div>
                             <div>
                               <label className="block text-sm font-semibold text-gray-700 mb-2">Destination City</label>
                               <input
                                 className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                value={getEditField(shipment.code, "destCity", shipment.destCity || "")}
-                                onChange={(e) => setEditField(shipment.code, "destCity", e.target.value)}
+                                value={getEditField(shipment.code, "dest_city", shipment.dest_city || "")}
+                                onChange={(e) => setEditField(shipment.code, "dest_city", e.target.value)}
                               />
                             </div>
                           </div>
