@@ -72,7 +72,7 @@ export default function SignUpPage() {
     setSubmitting(true);
 
     try {
-      const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/sign-in?check-email=1` : undefined;
+      const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL}/sign-in?check-email=1`;
 
       const { data, error } = await supabase.auth.signUp({
         email: form.email.trim(),

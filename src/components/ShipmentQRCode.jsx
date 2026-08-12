@@ -4,7 +4,7 @@ import { QRCodeCanvas } from 'qrcode.react'
 
 export default function ShipmentQRCode({ code }) {
   // Hardcoded to the new domain to ensure it doesn't use old Vercel environment variables
-  const url = `https://shiptrackglobal.com/track?code=${code}`
+  const url = `${process.env.NEXT_PUBLIC_SITE_URL}/track?code=${code}`
 
   return (
     <div className="text-center my-6">
