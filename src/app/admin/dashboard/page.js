@@ -271,9 +271,13 @@ export default function AdminDashboard() {
   };
 
   const handleLogout = async () => {
-    clearAdminToken();
-    await supabase.auth.signOut();
-    router.replace("/admin");
+    try {
+      clearAdminToken();
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+    window.location.href = "/admin";
   };
 
   const showToast = (message) => {

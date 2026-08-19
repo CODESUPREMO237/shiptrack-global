@@ -161,9 +161,6 @@ export default function AdminLoginCard({
               <Link href="/" className="font-medium text-[#4d148c] hover:text-[#ff6a13]">
                 Return to website
               </Link>
-              <Link href="/forgot-password" className="font-medium text-[#4d148c] hover:text-[#ff6a13]">
-                Forgot password?
-              </Link>
             </div>
           </div>
         </div>
