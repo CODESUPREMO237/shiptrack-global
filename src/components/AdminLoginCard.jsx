@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, AlertTriangle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { isAdminUser } from "@/lib/authRoles";
 import { storeAdminToken } from "@/lib/adminApi";
 import { validateEmail } from "@/lib/authValidation";
+
+const EMAIL_SERVICE_ACTIVE = process.env.NEXT_PUBLIC_EMAIL_SERVICE_ACTIVE !== "false";
 
 export default function AdminLoginCard({
   title = "Administrator Login",
@@ -99,6 +101,13 @@ export default function AdminLoginCard({
           </div>
 
           <div className="px-6 py-8 md:px-10 md:py-12">
+            {!EMAIL_SERVICE_ACTIVE && (
+              <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                <span>System email service subscription has lapsed — contact your developer.</span>
+              </div>
+            )}
+
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#4d148c]">Secure Sign In</p>
             <h2 className="mt-3 text-3xl font-black text-slate-950">{title}</h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">{subtitle}</p>
