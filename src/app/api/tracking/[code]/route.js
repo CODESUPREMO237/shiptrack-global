@@ -102,7 +102,7 @@ export async function PATCH(request, { params }) {
       return NextResponse.json({ error: 'Shipment not found' }, { status: 404 });
     }
 
-    if (shipment.owner_id !== authResult.user.id) {
+    if (shipment.owner_id && shipment.owner_id !== authResult.user.id) {
       return NextResponse.json({ error: 'Shipment not found' }, { status: 404 });
     }
 

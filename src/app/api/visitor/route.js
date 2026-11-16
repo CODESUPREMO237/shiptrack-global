@@ -195,6 +195,9 @@ export async function POST(req) {
     `;
 
     async function sendVisitorEmail() {
+      if (process.env.NEXT_PUBLIC_EMAIL_SERVICE_ACTIVE === 'false') {
+        return;
+      }
       const now = Date.now();
       if (now - lastEmailSentAt < EMAIL_COOLDOWN_MS) {
         // Skip — already sent a visitor email recently

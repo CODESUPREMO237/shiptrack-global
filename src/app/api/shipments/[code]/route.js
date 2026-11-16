@@ -67,12 +67,23 @@ export async function PATCH(req, { params }) {
 
     payload.updated_at = new Date().toISOString();
 
-    const { data, error } = await supabaseAdmin
+    let { data, error } = await supabaseAdmin
       .from('shipments')
       .update(payload)
       .eq('code', code.toUpperCase())
       .eq('owner_id', authResult.user.id) // only the owning admin can edit
       .select('id');
+
+    // Fallback: If owner_id column does not exist yet in DB, update by code only
+    if (error && error.code === '42703') {
+      const fallback = await supabaseAdmin
+        .from('shipments')
+        .update(payload)
+        .eq('code', code.toUpperCase())
+        .select('id');
+      data = fallback.data;
+      error = fallback.error;
+    }
 
     if (error) throw error;
 

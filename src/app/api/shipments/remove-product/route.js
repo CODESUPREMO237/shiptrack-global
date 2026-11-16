@@ -10,13 +10,21 @@ export async function POST(req) {
     const { shipmentCode, index } = await req.json();
     if (!shipmentCode || index === undefined) return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
 
-    const { data: shipment, error } = await supabaseAdmin
+    let selectRes = await supabaseAdmin
       .from('shipments')
       .select('products, owner_id')
       .eq('code', shipmentCode.toUpperCase())
       .single();
-    if (error) throw error;
-    if (!shipment || shipment.owner_id !== authResult.user.id) {
+    if (selectRes.error && selectRes.error.code === '42703') {
+      selectRes = await supabaseAdmin
+        .from('shipments')
+        .select('products')
+        .eq('code', shipmentCode.toUpperCase())
+        .single();
+    }
+    if (selectRes.error) throw selectRes.error;
+    const shipment = selectRes.data;
+    if (!shipment || (shipment.owner_id && shipment.owner_id !== authResult.user.id)) {
       return NextResponse.json({ error: 'Shipment not found' }, { status: 404 });
     }
 

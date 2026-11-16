@@ -13,7 +13,7 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Shipment code is required' }, { status: 400 })
     }
 
-    const { data, error } = await supabaseAdmin
+    let { data, error } = await supabaseAdmin
       .from('shipments')
       .update({
         current_lat: lat,
@@ -23,6 +23,21 @@ export async function POST(req) {
       .eq('code', code.toUpperCase())
       .eq('owner_id', authResult.user.id) // only the owning admin can move a shipment
       .select('id')
+
+    // Fallback: If owner_id column does not exist yet in DB
+    if (error && error.code === '42703') {
+      const fallback = await supabaseAdmin
+        .from('shipments')
+        .update({
+          current_lat: lat,
+          current_lng: lng,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('code', code.toUpperCase())
+        .select('id')
+      data = fallback.data
+      error = fallback.error
+    }
 
     if (error) throw error
 

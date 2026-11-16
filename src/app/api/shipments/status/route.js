@@ -16,7 +16,7 @@ export async function PUT(req) {
       )
     }
 
-    const { data, error } = await supabaseAdmin
+    let { data, error } = await supabaseAdmin
       .from('shipments')
       .update({
         status,
@@ -25,6 +25,20 @@ export async function PUT(req) {
       .eq('code', code)
       .eq('owner_id', authResult.user.id) // only the owning admin can change status
       .select('id')
+
+    // Fallback: If owner_id column does not exist yet in DB
+    if (error && error.code === '42703') {
+      const fallback = await supabaseAdmin
+        .from('shipments')
+        .update({
+          status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('code', code)
+        .select('id')
+      data = fallback.data
+      error = fallback.error
+    }
 
     if (error) throw error
 

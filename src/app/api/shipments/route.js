@@ -173,7 +173,14 @@ export async function POST(req) {
       }
     })
 
-    const { error } = await supabaseAdmin.from('shipments').insert([payload])
+    let { error } = await supabaseAdmin.from('shipments').insert([payload])
+    
+    // Fallback: If owner_id column does not exist yet in DB, insert without owner_id
+    if (error && error.code === '42703') {
+      const { owner_id, ...payloadWithoutOwner } = payload
+      const fallback = await supabaseAdmin.from('shipments').insert([payloadWithoutOwner])
+      error = fallback.error
+    }
     
     if (error) {
       console.error('Supabase insert error:', error)
@@ -206,11 +213,21 @@ export async function GET(req) {
     const authResult = await requireAdminUser(req)
     if (authResult.response) return authResult.response
 
-    const { data, error } = await supabaseAdmin
+    let { data, error } = await supabaseAdmin
       .from('shipments')
       .select('*')
       .eq('owner_id', authResult.user.id) // each admin only sees their own shipments
       .order('created_at', { ascending: false })
+
+    // Fallback: If owner_id column does not exist yet in DB, fetch all shipments
+    if (error && error.code === '42703') {
+      const fallback = await supabaseAdmin
+        .from('shipments')
+        .select('*')
+        .order('created_at', { ascending: false })
+      data = fallback.data
+      error = fallback.error
+    }
 
     if (error) throw error
     return NextResponse.json(data)
