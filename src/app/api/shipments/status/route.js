@@ -23,6 +23,8 @@ export async function PUT(req) {
         updated_at: new Date().toISOString()
       })
       .eq('code', code)
+      .eq('owner_id', authResult.user.id) // only the owning admin can change status
+      .select('id')
 
     if (error) throw error
 

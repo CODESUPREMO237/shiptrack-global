@@ -43,7 +43,7 @@ export default function TrackWithCode({ params }) {
   }, [trackingCode])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gray-50">
       <Navbar showFullNav={false} />
 
       {loading ? (
@@ -63,7 +63,7 @@ export default function TrackWithCode({ params }) {
             <p className="mb-6 text-red-600">{error}</p>
             <a
               href="/track"
-              className="inline-block rounded-xl bg-gradient-to-r from-purple-600 to-orange-500 px-6 py-3 font-semibold text-white transition hover:shadow-lg"
+              className="inline-block rounded-xl bg-[#4D148C] px-6 py-3 font-semibold text-white transition hover:shadow-lg"
             >
               Try Another Code
             </a>

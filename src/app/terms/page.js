@@ -14,7 +14,7 @@ export default function TermsOfService() {
      
 
       {/* Hero Section */}
-      <div className="bg-linear-to-r from-purple-600 to-orange-500 text-white py-16">
+      <div className="bg-[#4D148C] text-white py-16">
         <div className="container mx-auto px-4 text-center">
           <FileText className="w-16 h-16 mx-auto mb-4" />
           <h1 className="text-5xl font-extrabold mb-4">Terms of Service</h1>
@@ -232,7 +232,7 @@ export default function TermsOfService() {
           </div>
 
           {/* Contact Section */}
-          <div className="bg-linear-to-r from-purple-100 to-orange-100 p-8 rounded-xl">
+          <div className="bg-purple-50 p-8 rounded-xl">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">10. Contact Information</h2>
             <p className="text-gray-700 mb-4">
               For questions about these Terms of Service, please contact us:

@@ -271,13 +271,9 @@ export default function AdminDashboard() {
   };
 
   const handleLogout = async () => {
-    try {
-      clearAdminToken();
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-    window.location.href = "/admin";
+    clearAdminToken();
+    await supabase.auth.signOut();
+    router.replace("/admin");
   };
 
   const showToast = (message) => {
@@ -941,13 +937,28 @@ export default function AdminDashboard() {
                             <p className="text-xs text-blue-600 font-semibold mb-1">Payment Mode</p>
                             <select
                               className="w-full bg-white border-0 rounded-lg px-3 py-2 text-gray-900 font-medium focus:ring-2 focus:ring-blue-500"
-                              value={shipment.payment_mode || "PAYPAL"}
-                              onChange={(e) => updateShipmentField(shipment.code, "payment_mode", e.target.value)}
+                              value={paymentModes.includes(shipment.payment_mode) ? shipment.payment_mode : "OTHER"}
+                              onChange={(e) => {
+                                if (e.target.value === "OTHER") {
+                                  updateShipmentField(shipment.code, "payment_mode", "");
+                                } else {
+                                  updateShipmentField(shipment.code, "payment_mode", e.target.value);
+                                }
+                              }}
                             >
                               {paymentModes.map((mode) => (
                                 <option key={mode} value={mode}>{mode}</option>
                               ))}
+                              <option value="OTHER">OTHER (type your own)</option>
                             </select>
+                            {!paymentModes.includes(shipment.payment_mode) && (
+                              <input
+                                className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 mt-2 text-gray-900 font-medium focus:ring-2 focus:ring-blue-500 text-sm"
+                                placeholder="Enter custom payment method"
+                                value={shipment.payment_mode || ""}
+                                onChange={(e) => updateShipmentField(shipment.code, "payment_mode", e.target.value)}
+                              />
+                            )}
                           </div>
                         </div>
 
@@ -1146,11 +1157,12 @@ export default function AdminDashboard() {
                                 />
                               </div>
                               <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-1">Phone</label>
+                                <label className="block text-xs font-semibold text-gray-600 mb-1">Email</label>
                                 <input
+                                  type="email"
                                   className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                                  value={getEditField(shipment.code, "shipper_phone", shipment.shipper_phone || "")}
-                                  onChange={(e) => setEditField(shipment.code, "shipper_phone", e.target.value)}
+                                  value={getEditField(shipment.code, "shipper_email", shipment.shipper_email || "")}
+                                  onChange={(e) => setEditField(shipment.code, "shipper_email", e.target.value)}
                                 />
                               </div>
                             </div>
@@ -1208,7 +1220,7 @@ export default function AdminDashboard() {
                               <label className="block text-sm font-semibold text-gray-700 mb-2">Origin City</label>
                               <input
                                 className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                value={getEditField(shipment.code, "origin_city", shipment.origin_city || shipment.location || "")}
+                                value={getEditField(shipment.code, "origin_city", shipment.origin_city || shipment.originCity || shipment.location || "")}
                                 onChange={(e) => setEditField(shipment.code, "origin_city", e.target.value)}
                               />
                             </div>
@@ -1216,7 +1228,7 @@ export default function AdminDashboard() {
                               <label className="block text-sm font-semibold text-gray-700 mb-2">Destination City</label>
                               <input
                                 className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                value={getEditField(shipment.code, "dest_city", shipment.dest_city || "")}
+                                value={getEditField(shipment.code, "dest_city", shipment.dest_city || shipment.destCity || "")}
                                 onChange={(e) => setEditField(shipment.code, "dest_city", e.target.value)}
                               />
                             </div>
@@ -1318,9 +1330,8 @@ export default function AdminDashboard() {
                           <button
                             className="mt-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-2 rounded-lg hover:shadow-lg transition duration-200"
                             onClick={() => {
-                              const comment = commentInputs[shipment.code]?.trim();
-                              if (!comment) return;
-                              updateShipmentField(shipment.code, "admin_comment", comment);
+                              const comment = commentInputs[shipment.code] ?? "";
+                              updateShipmentField(shipment.code, "admin_comment", comment.trim());
                             }}
                           >
                             Save & Send Email
@@ -1344,7 +1355,7 @@ export default function AdminDashboard() {
                               <div key={idx} className="bg-gray-50 p-4 rounded-xl border border-gray-200">
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                                   <input
-                                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900"
                                     placeholder="Piece Type"
                                     value={p.piece_type || ""}
                                     onChange={(e) =>
@@ -1352,7 +1363,7 @@ export default function AdminDashboard() {
                                     }
                                   />
                                   <input
-                                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900"
                                     placeholder="Description"
                                     value={p.description || ""}
                                     onChange={(e) =>
@@ -1361,7 +1372,7 @@ export default function AdminDashboard() {
                                   />
                                   <input
                                     type="number"
-                                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900"
                                     placeholder="Qty"
                                     value={p.qty || 1}
                                     onChange={(e) =>
@@ -1370,7 +1381,7 @@ export default function AdminDashboard() {
                                   />
                                   <input
                                     type="number"
-                                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900"
                                     placeholder="Weight (kg)"
                                     value={p.weight_kg || 0}
                                     onChange={(e) =>
@@ -1405,15 +1416,17 @@ export default function AdminDashboard() {
                               type="number"
                               step="0.000001"
                               id={`lat-${shipment.code}`}
-                              className="flex-1 border border-gray-300 rounded-lg px-4 py-2 bg-white"
+                              className="flex-1 border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500"
                               placeholder="Latitude"
+                              defaultValue={shipment.current_lat || ""}
                             />
                             <input
                               type="number"
                               step="0.000001"
                               id={`lng-${shipment.code}`}
-                              className="flex-1 border border-gray-300 rounded-lg px-4 py-2 bg-white"
+                              className="flex-1 border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-purple-500"
                               placeholder="Longitude"
+                              defaultValue={shipment.current_lng || ""}
                             />
                             <button
                               onClick={() => {

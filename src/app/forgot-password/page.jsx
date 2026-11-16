@@ -44,7 +44,7 @@ export default function ForgotPasswordPage() {
     setSubmitting(true);
 
     try {
-      const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`;
+      const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/reset-password` : undefined;
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
       if (resetError) throw resetError;
 
@@ -92,7 +92,7 @@ export default function ForgotPasswordPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex w-full items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#4d148c_0%,#ff6a13_100%)] px-5 py-3.5 text-base font-semibold text-white shadow-lg shadow-[#4d148c]/20 transition hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex w-full items-center justify-center rounded-2xl bg-[#4D148C] hover:bg-[#3d1070] px-5 py-3.5 text-base font-semibold text-white shadow-lg shadow-[#4d148c]/20 transition hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting ? "Sending Link..." : "Send Reset Link"}
         </button>

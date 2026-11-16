@@ -9,10 +9,10 @@ import Navbar from "@/components/Navbar";
 
 export default function FreightPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gray-50">
       <Navbar />
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-blue-700 to-indigo-700 text-white overflow-hidden">
+      <div className="relative bg-[#4D148C] text-white overflow-hidden">
         <div className="absolute inset-0 bg-black opacity-20"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -118,7 +118,7 @@ export default function FreightPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="grid md:grid-cols-4 gap-8 text-center">
             <div>
-              <div className="text-4xl font-bold mb-2">50K+</div>
+              <div className="text-4xl font-bold mb-2">5K+</div>
               <div className="text-blue-200">Shipments Monthly</div>
             </div>
             <div>
@@ -130,7 +130,7 @@ export default function FreightPage() {
               <div className="text-blue-200">Support Available</div>
             </div>
             <div>
-              <div className="text-4xl font-bold mb-2">150+</div>
+              <div className="text-4xl font-bold mb-2">100+</div>
               <div className="text-blue-200">Countries Served</div>
             </div>
           </div>

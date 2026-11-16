@@ -9,6 +9,10 @@ export async function POST(req) {
     if (authResult.response) return authResult.response
 
     const { code, lat, lng } = await req.json()
+    if (!code) {
+      return NextResponse.json({ error: 'Shipment code is required' }, { status: 400 })
+    }
+
     const { data, error } = await supabaseAdmin
       .from('shipments')
       .update({
@@ -17,8 +21,15 @@ export async function POST(req) {
         updated_at: new Date().toISOString(),
       })
       .eq('code', code.toUpperCase())
+      .eq('owner_id', authResult.user.id) // only the owning admin can move a shipment
+      .select('id')
 
     if (error) throw error
+
+    if (!data || data.length === 0) {
+      return NextResponse.json({ error: 'Shipment not found' }, { status: 404 })
+    }
+
     return NextResponse.json({ success: true })
   } catch (err) {
     console.error('Update location error:', err)

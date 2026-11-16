@@ -11,7 +11,7 @@ import { Truck, Globe, Clock, Shield, Search, Package, ArrowRight } from "lucide
 
 const stats = [
   { value: "220+", label: "Countries & territories" },
-  { value: "10M+", label: "Shipments tracked" },
+  { value: "50K+", label: "Shipments tracked" },
   { value: "99.9%", label: "On-time delivery" },
   { value: "24/7", label: "Customer support" },
 ];
@@ -176,7 +176,7 @@ export default function Home() {
         <div className="py-14" style={{ backgroundColor: "var(--brand-primary)" }}>
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-2xl md:text-4xl font-bold text-white mb-3">
-              Trusted by 10,000+ Businesses Worldwide
+              Trusted by 500+ Businesses Worldwide
             </h2>
             <p className="text-white/80 mb-7 text-sm md:text-base">
               Join the companies that rely on us for their shipping needs

@@ -44,7 +44,7 @@ export default function FeedbackPage() {
       <Navbar showFullNav={true} />
       
       {/* Hero Section */}
-      <div className="bg-linear-to-r from-purple-600 to-orange-500 text-white py-12">
+      <div className="bg-[#4D148C] text-white py-12">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl font-extrabold mb-4">Send Us Feedback</h1>
           <p className="text-lg opacity-90 max-w-2xl mx-auto">

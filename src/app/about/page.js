@@ -12,7 +12,7 @@ export default function AboutPage() {
       <Navbar showFullNav={true} />
 
       {/* Hero */}
-      <div className="bg-linear-to-r from-purple-600 to-orange-500 text-white py-16">
+      <div className="bg-[#4D148C] text-white py-16">
         <div className="container mx-auto px-4 text-center">
           <Globe className="w-16 h-16 mx-auto mb-4" />
           <h1 className="text-5xl font-extrabold mb-4">About ShipTrack Global</h1>
@@ -29,7 +29,7 @@ export default function AboutPage() {
           <div className="bg-white p-10 rounded-2xl shadow-lg border border-gray-100">
             <h2 className="text-3xl font-bold text-gray-900 mb-6 text-center">Who We Are</h2>
             <p className="text-gray-700 text-lg leading-relaxed mb-4">
-              ShipTrack Global is a leading logistics and shipment tracking platform dedicated to bringing transparency, speed, and reliability to the world of global shipping. Founded with a vision to simplify complex supply chains, we serve over 10,000 businesses worldwide.
+              ShipTrack Global is a leading logistics and shipment tracking platform dedicated to bringing transparency, speed, and reliability to the world of global shipping. Founded with a vision to simplify complex supply chains, we serve over 500 businesses worldwide.
             </p>
             <p className="text-gray-700 text-lg leading-relaxed">
               Our state-of-the-art tracking technology ensures real-time visibility of shipments across air, sea, and land routes, giving our customers complete peace of mind from pickup to delivery.
@@ -38,17 +38,17 @@ export default function AboutPage() {
 
           {/* Stats Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-linear-to-br from-purple-500 to-purple-600 text-white p-8 rounded-2xl shadow-lg text-center">
+            <div className="bg-[#4D148C] text-white p-8 rounded-2xl shadow-lg text-center">
               <Award className="w-12 h-12 mx-auto mb-3" />
-              <div className="text-4xl font-bold mb-2">10,000+</div>
+              <div className="text-4xl font-bold mb-2">500+</div>
               <div className="text-purple-100">Active Clients</div>
             </div>
-            <div className="bg-linear-to-br from-orange-500 to-orange-600 text-white p-8 rounded-2xl shadow-lg text-center">
+            <div className="bg-[#FF6A13] text-white p-8 rounded-2xl shadow-lg text-center">
               <Globe className="w-12 h-12 mx-auto mb-3" />
               <div className="text-4xl font-bold mb-2">220+</div>
               <div className="text-orange-100">Countries Served</div>
             </div>
-            <div className="bg-linear-to-br from-purple-600 to-orange-500 text-white p-8 rounded-2xl shadow-lg text-center">
+            <div className="bg-[#4D148C] text-white p-8 rounded-2xl shadow-lg text-center">
               <TrendingUp className="w-12 h-12 mx-auto mb-3" />
               <div className="text-4xl font-bold mb-2">99.9%</div>
               <div className="text-purple-100">On-Time Delivery</div>
@@ -105,7 +105,7 @@ export default function AboutPage() {
           </div>
 
           {/* Vision */}
-          <div className="bg-linear-to-r from-purple-100 to-orange-100 p-10 rounded-2xl border-2 border-purple-200">
+          <div className="bg-purple-50 p-10 rounded-2xl border-2 border-purple-200">
             <div className="flex items-center mb-4">
               <Rocket className="w-10 h-10 text-purple-700 mr-3" />
               <h2 className="text-3xl font-bold text-gray-900">Our Vision</h2>

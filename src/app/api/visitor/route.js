@@ -5,6 +5,10 @@ import nodemailer from 'nodemailer';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
+// Email rate-limiting: send at most 1 visitor email per 30 minutes
+const EMAIL_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+let lastEmailSentAt = 0;
+
 // Escape for Telegram HTML parse_mode
 function escHtml(str) {
   if (!str) return '';
@@ -191,6 +195,11 @@ export async function POST(req) {
     `;
 
     async function sendVisitorEmail() {
+      const now = Date.now();
+      if (now - lastEmailSentAt < EMAIL_COOLDOWN_MS) {
+        // Skip — already sent a visitor email recently
+        return;
+      }
       try {
         const transporter = nodemailer.createTransport({
           host: process.env.SMTP_HOST,
@@ -207,6 +216,7 @@ export async function POST(req) {
           subject: `👁️ New Visitor on ${pageLabel} — ShipTrack Global`,
           html: emailHtml,
         });
+        lastEmailSentAt = now;
       } catch (err) {
         console.error('Visitor email error:', err);
       }

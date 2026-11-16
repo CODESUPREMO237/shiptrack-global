@@ -144,7 +144,8 @@ export default function AccountPage() {
     setResettingPassword(true);
 
     try {
-      const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`;
+      const redirectTo =
+        typeof window !== "undefined" ? `${window.location.origin}/reset-password` : undefined;
       const { error } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo });
       if (error) throw error;
 
@@ -167,12 +168,12 @@ export default function AccountPage() {
 
   return (
     <CustomerAuthGuard>
-      <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eef2ff_36%,#fff7ed_100%)]">
+      <div className="min-h-screen bg-slate-50">
         <Navbar showFullNav />
 
         <main className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-10">
           <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
-            <div className="bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_44%,#4d148c_100%)] px-6 py-8 text-white md:px-10 md:py-10">
+            <div className="bg-[#0f172a] px-6 py-8 text-white md:px-10 md:py-10">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.25em] text-orange-300">My Account</p>
@@ -270,7 +271,7 @@ export default function AccountPage() {
                     <button
                       type="submit"
                       disabled={saving}
-                      className="inline-flex items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#4d148c_0%,#ff6a13_100%)] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[#4d148c]/20 transition hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center justify-center rounded-2xl bg-[#4D148C] hover:bg-[#3d1070] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[#4d148c]/20 transition hover:translate-y-[-1px] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {saving ? "Saving Profile..." : "Save Profile Changes"}
                     </button>

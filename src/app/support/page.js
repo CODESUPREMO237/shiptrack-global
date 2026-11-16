@@ -3,7 +3,7 @@
 import Link from "next/link";
 import ChatWidget from "@/components/ChatWidget";
 import Navbar from "@/components/Navbar";
-import { Mail, Phone, Clock, MessageCircle, FileQuestion } from "lucide-react";
+import { Mail, Phone, Clock, MessageCircle, FileQuestion, MapPin } from "lucide-react";
 
 export default function Support() {
   return (
@@ -12,7 +12,7 @@ export default function Support() {
       <Navbar showFullNav={true} />
 
       {/* Hero Section */}
-      <div className="bg-linear-to-r from-purple-600 to-orange-500 text-white py-16">
+      <div className="bg-[#4D148C] text-white py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-5xl font-extrabold mb-4">How Can We Help You?</h1>
           <p className="text-xl opacity-90">
@@ -23,16 +23,25 @@ export default function Support() {
 
       {/* Contact Methods */}
       <div className="container mx-auto px-4 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+          <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition border border-gray-100">
+            <MapPin className="w-12 h-12 text-purple-600 mb-4" />
+            <h3 className="text-xl font-bold mb-2">Our Office</h3>
+            <p className="text-gray-600 mb-4">Visit or write to us</p>
+            <p className="text-gray-700 font-semibold text-sm leading-relaxed">
+              1200 Commerce Dr, Suite 310,<br />Plano, TX 75093,<br />United States
+            </p>
+          </div>
+
           <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition border border-gray-100">
             <Mail className="w-12 h-12 text-purple-600 mb-4" />
             <h3 className="text-xl font-bold mb-2">Email Support</h3>
             <p className="text-gray-600 mb-4">Get in touch via email</p>
             <a
-              href="mailto:support@shiptrackglobal.com"
+              href="mailto:support@shiptrackgl.com"
               className="text-purple-600 hover:text-purple-700 font-semibold"
             >
-              support@shiptrackglobal.com
+              support@shiptrackgl.com
 
             </a>
           </div>
@@ -114,7 +123,7 @@ export default function Support() {
         </div>
 
         {/* Feedback Section */}
-        <div className="mt-16 bg-linear-to-r from-purple-100 to-orange-100 p-10 rounded-2xl">
+        <div className="mt-16 bg-purple-50 p-10 rounded-2xl">
           <div className="flex items-center mb-6">
             <Clock className="w-10 h-10 text-purple-600 mr-3" />
             <h2 className="text-3xl font-bold text-gray-900">We Value Your Feedback</h2>

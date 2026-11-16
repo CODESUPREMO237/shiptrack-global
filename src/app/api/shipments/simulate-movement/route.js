@@ -45,9 +45,16 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Missing coordinates' }, { status: 400 })
     }
 
-    // Linear interpolation between origin and destination
+    // Linear interpolation — for longitude, take the shortest path
+    // (cross the antimeridian when that's shorter, e.g. Australia → US)
     const newLat = originLat + (destLat - originLat) * newProgress
-    const newLng = originLng + (destLng - originLng) * newProgress
+    let adjustedDestLng = destLng
+    if (destLng - originLng > 180) adjustedDestLng -= 360
+    if (destLng - originLng < -180) adjustedDestLng += 360
+    let newLng = originLng + (adjustedDestLng - originLng) * newProgress
+    // Normalise back to [-180, 180]
+    if (newLng > 180) newLng -= 360
+    if (newLng < -180) newLng += 360
 
     // 💾 Prepare updates
     const updates = {

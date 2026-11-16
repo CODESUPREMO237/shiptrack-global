@@ -57,10 +57,10 @@ export function buildInvoiceData(shipment, products) {
     payment_status: shipment?.payment_status || "Pending",
     payment_mode: shipment?.payment_mode || "-",
     currency: shipment?.currency || "USD",
-    originCity: resolveLocationLabel(shipment?.originCity || shipment?.origin_city || shipment?.location, shipment?.origin_lat, shipment?.origin_lng),
-    destCity: resolveLocationLabel(shipment?.destCity || shipment?.dest_city, shipment?.dest_lat, shipment?.dest_lng),
+    originCity: resolveLocationLabel(shipment?.origin_city || shipment?.originCity || shipment?.location, shipment?.origin_lat, shipment?.origin_lng),
+    destCity: resolveLocationLabel(shipment?.dest_city || shipment?.destCity, shipment?.dest_lat, shipment?.dest_lng),
     shipper_name: shipment?.shipper_name || "-",
-    shipper_phone: shipment?.shipper_phone || "-",
+    shipper_email: shipment?.shipper_email || "-",
     shipper_address: shipment?.shipper_address || "-",
     receiver_name: shipment?.receiver_name || "-",
     receiver_phone: shipment?.receiver_phone || "-",
@@ -148,7 +148,7 @@ const ShipmentInvoice = forwardRef(function ShipmentInvoice({ data }, ref) {
           <p className="text-xs font-bold text-purple-600 uppercase tracking-wide mb-2">Shipper</p>
           <p className="font-semibold text-gray-900">{inv.shipper_name}</p>
           <p className="text-gray-600">{inv.shipper_address}</p>
-          <p className="text-gray-600">{inv.shipper_phone}</p>
+          <p className="text-gray-600">{inv.shipper_email}</p>
         </div>
         <div>
           <p className="text-xs font-bold text-orange-600 uppercase tracking-wide mb-2">Receiver</p>

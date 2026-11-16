@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdminUser } from '@/lib/adminAuth';
 import { supabaseAdmin } from '@/lib/supabaseClient';
-import { sendAdminCommentEmail } from '@/lib/email';
+// NOTE: email is dynamically imported in PATCH only — avoids loading nodemailer on GET requests
 
 const safeParseFloat = (val) =>
   val === null || val === undefined || val === '' ? 0 : parseFloat(val);
@@ -45,7 +45,16 @@ export async function GET(request, { params }) {
 
     const progress = shipment.progress ?? 0;
     const currentLat = originLat + progress * (destLat - originLat);
-    const currentLng = originLng + progress * (destLng - originLng);
+
+    // For longitude, take the shortest path — if the difference is > 180°,
+    // the route crosses the antimeridian (e.g. Australia → US via Pacific)
+    let adjustedDestLng = destLng;
+    if (destLng - originLng > 180) adjustedDestLng -= 360;
+    if (destLng - originLng < -180) adjustedDestLng += 360;
+    let currentLng = originLng + progress * (adjustedDestLng - originLng);
+    // Normalise back to [-180, 180]
+    if (currentLng > 180) currentLng -= 360;
+    if (currentLng < -180) currentLng += 360;
 
     return NextResponse.json({
       ...shipment,
@@ -93,6 +102,10 @@ export async function PATCH(request, { params }) {
       return NextResponse.json({ error: 'Shipment not found' }, { status: 404 });
     }
 
+    if (shipment.owner_id !== authResult.user.id) {
+      return NextResponse.json({ error: 'Shipment not found' }, { status: 404 });
+    }
+
     if (!shipment.id) {
       console.error('Shipment ID is missing, cannot update');
       return NextResponse.json({ error: 'Shipment ID missing' }, { status: 400 });
@@ -128,6 +141,7 @@ export async function PATCH(request, { params }) {
       shipment.receiver_email
     ) {
       try {
+        const { sendAdminCommentEmail } = await import('@/lib/email');
         await sendAdminCommentEmail(shipment.receiver_email, code, updateData.admin_comment);
         console.log(`Admin comment email sent to ${shipment.receiver_email}`);
       } catch (err) {

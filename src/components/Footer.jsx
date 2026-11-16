@@ -5,7 +5,7 @@
 "use client"
 import React from 'react';
 import Link from 'next/link';
-import { Headphones } from 'lucide-react';
+import { Headphones, MapPin } from 'lucide-react';
 
 export default function Footer() {
   const handleCookieConsent = () => {
@@ -89,11 +89,15 @@ export default function Footer() {
           <div>
             <h3 className="text-lg font-bold mb-4">Contact</h3>
             <ul className="space-y-2 text-gray-400 text-sm">
+              <li className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <span>1200 Commerce Dr, Suite 310,<br />Plano, TX 75093, United States</span>
+              </li>
               <li className="flex items-center gap-2">
                 <Headphones className="w-4 h-4" />
                 <span>+1 929 782 9204</span>
               </li>
-              <li>support@shiptrackglobal.com</li>
+              <li>support@shiptrackgl.com</li>
               <li className="pt-4">
                 <div className="flex gap-3">
                   <a 

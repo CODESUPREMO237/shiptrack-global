@@ -40,7 +40,7 @@ export default function ShippingCarousel() {
       ))}
       
       {/* Dark overlay for text readability - REDUCED OPACITY */}
-      <div className="absolute inset-0 bg-linear-to-br from-purple-900/40 via-purple-800/30 to-orange-600/40"></div>
+      <div className="absolute inset-0 bg-black/30"></div>
       
       {/* Carousel indicators */}
       <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex space-x-2 z-10">

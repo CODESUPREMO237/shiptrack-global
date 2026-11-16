@@ -21,7 +21,7 @@ export default function AuthPageShell({
   children,
 }) {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(255,106,19,0.18),_transparent_34%),linear-gradient(135deg,#f8fafc_0%,#eef2ff_45%,#fff7ed_100%)]">
+    <div className="min-h-screen bg-slate-50">
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col justify-center px-4 py-10 md:px-8 lg:flex-row lg:items-stretch lg:gap-8">
         <div className="mb-8 flex-1 rounded-[32px] border border-slate-200/70 bg-slate-950 px-7 py-8 text-white shadow-[0_24px_80px_rgba(15,23,42,0.22)] lg:mb-0 lg:px-10 lg:py-12">
           <Link

@@ -71,7 +71,7 @@ export default function ShipmentDrawer({ shipment, onClose, onStatusChange, onUp
       <div className="mt-6">
         <h3 className="font-semibold mb-2">Shipper</h3>
         <p><strong>{shipment.shipper_name}</strong></p>
-        <p>{shipment.shipper_phone}</p>
+        <p>{shipment.shipper_email}</p>
         <p className="text-sm text-gray-600">{shipment.shipper_address}</p>
       </div>
 

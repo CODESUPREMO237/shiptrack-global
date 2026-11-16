@@ -132,6 +132,7 @@ export default function ShipmentDetails({ initialShipment, isAdmin = false }) {
   const [showMoreDetails, setShowMoreDetails] = useState(false)
   const mounted = useRef(false)
   const pollingIntervalRef = useRef(null)
+  const pollingRef = useRef(true)
 
   const fmt = (v) => (v === null || v === undefined || v === '' ? '—' : v)
 
@@ -171,24 +172,28 @@ export default function ShipmentDetails({ initialShipment, isAdmin = false }) {
         const statusStopsMovement = ['On Hold', 'Cancelled', 'Delivered'].includes(data.status)
         setLocation({ lat: data.current_lat ?? null, lng: data.current_lng ?? null })
         if (statusStopsMovement) {
+          pollingRef.current = false
           setPolling(false)
+          clearInterval(pollingIntervalRef.current)
+          pollingIntervalRef.current = null
         }
       } catch (err) {
         console.error('Polling error', err)
       }
     }
 
-    fetchShipment()
+    // Don't re-fetch immediately — we already have initialShipment data
+    pollingRef.current = true
     pollingIntervalRef.current = setInterval(() => {
-      if (polling) fetchShipment()
-    }, 3000)
+      if (pollingRef.current) fetchShipment()
+    }, 30000)
 
     return () => {
       mounted.current = false
       clearInterval(pollingIntervalRef.current)
       pollingIntervalRef.current = null
     }
-  }, [initialShipment?.code, polling])
+  }, [initialShipment?.code])
 
   const handleNotifySubmit = async (e) => {
     e.preventDefault()
@@ -289,7 +294,7 @@ export default function ShipmentDetails({ initialShipment, isAdmin = false }) {
             <MapPin className="w-4 h-4" style={{ color: 'var(--brand-primary)' }} />
             <span className="font-semibold text-gray-900 text-sm">Live Tracking Map</span>
           </div>
-          <div className="h-72">
+          <div className="h-96">
             <MapLeaflet
               lat={location.lat}
               lng={location.lng}
@@ -337,7 +342,7 @@ export default function ShipmentDetails({ initialShipment, isAdmin = false }) {
                 </div>
                 <p className="text-gray-900 font-medium text-sm">{fmt(shipment.shipper_name)}</p>
                 <p className="text-gray-500 text-xs mt-1 flex items-start gap-1.5"><MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />{fmt(shipment.shipper_address)}</p>
-                <p className="text-gray-500 text-xs mt-1 flex items-center gap-1.5"><Phone className="w-3 h-3" />{fmt(shipment.shipper_phone)}</p>
+                <p className="text-gray-500 text-xs mt-1 flex items-center gap-1.5"><Mail className="w-3 h-3" />{fmt(shipment.shipper_email)}</p>
               </div>
 
               <div className="bg-white rounded-lg border border-gray-200 p-4">

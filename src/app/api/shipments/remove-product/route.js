@@ -12,10 +12,13 @@ export async function POST(req) {
 
     const { data: shipment, error } = await supabaseAdmin
       .from('shipments')
-      .select('products')
+      .select('products, owner_id')
       .eq('code', shipmentCode.toUpperCase())
       .single();
     if (error) throw error;
+    if (!shipment || shipment.owner_id !== authResult.user.id) {
+      return NextResponse.json({ error: 'Shipment not found' }, { status: 404 });
+    }
 
     const products = shipment.products || [];
     if (!products[index]) return NextResponse.json({ error: 'Product index out of bounds' }, { status: 400 });

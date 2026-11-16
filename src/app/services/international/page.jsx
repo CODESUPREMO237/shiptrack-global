@@ -12,10 +12,10 @@ import Navbar from "@/components/Navbar";
 
 export default function InternationalPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-cyan-50">
+    <div className="min-h-screen bg-gray-50">
       <Navbar />
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-teal-600 to-cyan-600 text-white overflow-hidden">
+      <div className="relative bg-[#4D148C] text-white overflow-hidden">
         <div className="absolute inset-0 bg-black opacity-20"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -25,7 +25,7 @@ export default function InternationalPage() {
                 <span className="text-sm font-medium">Worldwide Reach</span>
               </div>
               <h1 className="text-5xl font-bold mb-6 leading-tight">International Shipping</h1>
-              <p className="text-xl mb-8 text-teal-100">Global delivery network connecting you to over 200 countries</p>
+              <p className="text-xl mb-8 text-teal-100">Global delivery network connecting you to over 150 countries</p>
               <div className="flex gap-4">
                 <button className="bg-white text-teal-600 px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 transition">
                   Ship Internationally
@@ -40,15 +40,15 @@ export default function InternationalPage() {
                 <h3 className="text-2xl font-bold mb-6">Global Coverage</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
-                    <div className="text-3xl font-bold mb-1">200+</div>
+                    <div className="text-3xl font-bold mb-1">150+</div>
                     <div className="text-sm text-teal-100">Countries</div>
                   </div>
                   <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
-                    <div className="text-3xl font-bold mb-1">500+</div>
+                    <div className="text-3xl font-bold mb-1">200+</div>
                     <div className="text-sm text-teal-100">Ports</div>
                   </div>
                   <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
-                    <div className="text-3xl font-bold mb-1">1000+</div>
+                    <div className="text-3xl font-bold mb-1">300+</div>
                     <div className="text-sm text-teal-100">Partners</div>
                   </div>
                   <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
@@ -105,7 +105,7 @@ export default function InternationalPage() {
               { step: "04", title: "Receive Delivery", desc: "Get confirmation and proof of delivery" }
             ].map((item, idx) => (
               <div key={idx} className="text-center">
-                <div className="bg-gradient-to-br from-teal-500 to-cyan-500 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
+                <div className="bg-[#4D148C] text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
                   {item.step}
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
@@ -118,7 +118,7 @@ export default function InternationalPage() {
       </div>
 
       {/* CTA Section */}
-      <div className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white">
+      <div className="bg-[#4D148C] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
           <h2 className="text-3xl font-bold mb-4">Start Shipping Globally Today</h2>
           <p className="text-xl mb-8 text-teal-100">Join thousands of businesses shipping worldwide</p>

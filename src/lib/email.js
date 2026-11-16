@@ -12,7 +12,7 @@ export const transporter = nodemailer.createTransport({
 
 export async function sendAdminCommentEmail(to, shipmentCode, comment) {
   const mailOptions = {
-    from: `"HipTrack" <${process.env.SMTP_USER}>`,
+    from: `"ShipTrack Global" <${process.env.SMTP_USER}>`,
     to,
     subject: `New Admin Comment for Shipment ${shipmentCode}`,
     html: `
@@ -22,7 +22,7 @@ export async function sendAdminCommentEmail(to, shipmentCode, comment) {
         ${comment}
       </blockquote>
       <p>You can check the full shipment details <a href="${process.env.NEXT_PUBLIC_SITE_URL}/track/${shipmentCode}" style="color: #2563eb; text-decoration: underline;">here</a>.</p>
-      <p>– HipTrack Team</p>
+      <p>– ShipTrack Global Team</p>
     `,
   };
   

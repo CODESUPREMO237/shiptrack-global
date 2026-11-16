@@ -10,10 +10,10 @@ import Navbar from "@/components/Navbar";
 
 export default function ExpressPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
+    <div className="min-h-screen bg-gray-50">
       <Navbar />
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-purple-600 to-blue-600 text-white overflow-hidden">
+      <div className="relative bg-[#4D148C] text-white overflow-hidden">
         <div className="absolute inset-0 bg-black opacity-20"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -99,7 +99,7 @@ export default function ExpressPage() {
       </div>
 
       {/* CTA Section */}
-      <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
+      <div className="bg-[#4D148C] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to Ship?</h2>
           <p className="text-xl mb-8 text-purple-100">Get instant quotes and schedule pickups online</p>

@@ -9,10 +9,10 @@ import ChatWidget from "@/components/ChatWidget";
 import Navbar from "@/components/Navbar";
 export default function SupplyChainPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
+    <div className="min-h-screen bg-gray-50">
       <Navbar />
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-orange-600 to-amber-600 text-white overflow-hidden">
+      <div className="relative bg-[#FF6A13] text-white overflow-hidden">
         <div className="absolute inset-0 bg-black opacity-20"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -121,7 +121,7 @@ export default function SupplyChainPage() {
                 ))}
               </ul>
             </div>
-            <div className="bg-gradient-to-br from-orange-100 to-amber-100 rounded-2xl p-8">
+            <div className="bg-orange-50 rounded-2xl p-8">
               <h3 className="text-2xl font-bold text-gray-900 mb-6">Success Metrics</h3>
               <div className="space-y-6">
                 <div>
@@ -130,7 +130,7 @@ export default function SupplyChainPage() {
                     <span className="font-bold text-orange-600">99.5%</span>
                   </div>
                   <div className="w-full bg-white rounded-full h-3">
-                    <div className="bg-gradient-to-r from-orange-500 to-amber-500 h-3 rounded-full" style={{width: '99.5%'}}></div>
+                    <div className="bg-[#FF6A13] h-3 rounded-full" style={{width: '99.5%'}}></div>
                   </div>
                 </div>
                 <div>
@@ -139,7 +139,7 @@ export default function SupplyChainPage() {
                     <span className="font-bold text-orange-600">30%</span>
                   </div>
                   <div className="w-full bg-white rounded-full h-3">
-                    <div className="bg-gradient-to-r from-orange-500 to-amber-500 h-3 rounded-full" style={{width: '75%'}}></div>
+                    <div className="bg-[#FF6A13] h-3 rounded-full" style={{width: '75%'}}></div>
                   </div>
                 </div>
                 <div>
@@ -148,7 +148,7 @@ export default function SupplyChainPage() {
                     <span className="font-bold text-orange-600">98%</span>
                   </div>
                   <div className="w-full bg-white rounded-full h-3">
-                    <div className="bg-gradient-to-r from-orange-500 to-amber-500 h-3 rounded-full" style={{width: '98%'}}></div>
+                    <div className="bg-[#FF6A13] h-3 rounded-full" style={{width: '98%'}}></div>
                   </div>
                 </div>
               </div>
@@ -159,7 +159,7 @@ export default function SupplyChainPage() {
       </div>
 
       {/* CTA Section */}
-      <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white">
+      <div className="bg-[#FF6A13] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div>
