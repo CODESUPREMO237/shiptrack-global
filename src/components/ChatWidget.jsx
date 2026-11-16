@@ -297,7 +297,7 @@ export default function ChatWidget({ isAdmin = false, selectedUserId = null }) {
     }
   };
 
-  const handleOpen = () => {
+  const handleOpen = async () => {
     setIsOpen(true);
     setUnreadCount(0);
 
@@ -306,18 +306,47 @@ export default function ChatWidget({ isAdmin = false, selectedUserId = null }) {
         loadAvailableUsers();
         setShowUserList(true);
       } else {
-        // Mark messages as read
-        messages.filter(m => !m.is_admin && !m.read).forEach((msg) => {
-          supabase.from("messages").update({ read: true }).eq("id", msg.id).then();
-        });
+        // Mark all customer messages as read for the selected user
+        try {
+          await supabase
+            .from("messages")
+            .update({ read: true })
+            .eq("user_id", userId)
+            .eq("is_admin", false)
+            .eq("read", false);
+
+          // Update local messages state
+          setMessages((prev) =>
+            prev.map((m) => (!m.is_admin && !m.read ? { ...m, read: true } : m))
+          );
+        } catch (err) {
+          console.error("Error marking messages read:", err);
+        }
       }
     }
   };
 
-  const selectUser = (selectedUserId) => {
-    setUserId(selectedUserId);
+  const selectUser = async (selId) => {
+    setUserId(selId);
     setShowUserList(false);
     setMessages([]);
+
+    // Mark all customer messages as read for this user
+    try {
+      await supabase
+        .from("messages")
+        .update({ read: true })
+        .eq("user_id", selId)
+        .eq("is_admin", false)
+        .eq("read", false);
+    } catch (err) {
+      console.error("Error marking messages read:", err);
+    }
+
+    // Update unread counts in user list
+    setAvailableUsers((prev) =>
+      prev.map((u) => (u.userId === selId ? { ...u, unreadCount: 0 } : u))
+    );
   };
 
   const handleKeyDown = (e) => {
@@ -414,9 +443,21 @@ export default function ChatWidget({ isAdmin = false, selectedUserId = null }) {
                         )}
                       </div>
                       {user.lastMessage && (
-                        <p className="text-sm text-gray-600 truncate">
-                          {user.lastMessage}
-                        </p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm text-gray-600 truncate flex-1">
+                            {user.lastMessage}
+                          </p>
+                          {user.lastMessageTime && (
+                            <p className="text-xs text-gray-400 shrink-0">
+                              {(() => {
+                                const d = new Date(user.lastMessageTime);
+                                const today = new Date();
+                                if (d.toDateString() === today.toDateString()) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                                return d.toLocaleDateString([], { month: "short", day: "numeric" });
+                              })()}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </button>
                   ))
@@ -527,7 +568,18 @@ export default function ChatWidget({ isAdmin = false, selectedUserId = null }) {
                         {/* Timestamp */}
                         <div className="px-3 pb-1">
                           <p className={`text-xs text-right ${isMyMessage ? "text-green-100" : "text-gray-400"}`}>
-                            {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            {(() => {
+                              const msgDate = new Date(msg.created_at);
+                              const today = new Date();
+                              const yesterday = new Date();
+                              yesterday.setDate(yesterday.getDate() - 1);
+                              const isToday = msgDate.toDateString() === today.toDateString();
+                              const isYesterday = msgDate.toDateString() === yesterday.toDateString();
+                              const time = msgDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                              if (isToday) return time;
+                              if (isYesterday) return `Yesterday, ${time}`;
+                              return `${msgDate.toLocaleDateString([], { month: "short", day: "numeric" })}, ${time}`;
+                            })()}
                           </p>
                         </div>
                       </div>
