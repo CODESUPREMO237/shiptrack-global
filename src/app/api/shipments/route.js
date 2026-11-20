@@ -175,10 +175,22 @@ export async function POST(req) {
 
     let { error } = await supabaseAdmin.from('shipments').insert([payload])
     
-    // Fallback: If owner_id column does not exist yet in DB, insert without owner_id
-    if (error && error.code === '42703') {
-      const { owner_id, ...payloadWithoutOwner } = payload
-      const fallback = await supabaseAdmin.from('shipments').insert([payloadWithoutOwner])
+    // Fallback: If a column doesn't exist in the DB, PostgREST returns PGRST204
+    // (or Postgres returns 42703). Strip the offending column and retry (up to 3 rounds).
+    let retries = 0
+    while (error && (error.code === 'PGRST204' || error.code === '42703') && retries < 3) {
+      retries++
+      // PostgREST format: "Could not find the 'col_name' column of 'table' in the schema cache"
+      // Postgres format:  'column "col_name" of relation ...'
+      const colMatch = error.message?.match(/(?:the\s+'(\w+)'\s+column|column\s+"?(\w+)"?)/)
+      const badCol = colMatch?.[1] || colMatch?.[2]
+      if (badCol && badCol in payload) {
+        console.warn(`Column "${badCol}" not in DB – stripping and retrying (attempt ${retries})`)
+        delete payload[badCol]
+      } else {
+        break // can't identify the column, stop retrying
+      }
+      const fallback = await supabaseAdmin.from('shipments').insert([payload])
       error = fallback.error
     }
     
@@ -220,7 +232,7 @@ export async function GET(req) {
       .order('created_at', { ascending: false })
 
     // Fallback: If owner_id column does not exist yet in DB, fetch all shipments
-    if (error && error.code === '42703') {
+    if (error && (error.code === 'PGRST204' || error.code === '42703')) {
       const fallback = await supabaseAdmin
         .from('shipments')
         .select('*')

@@ -75,7 +75,7 @@ export async function PATCH(req, { params }) {
       .select('id');
 
     // Fallback: If owner_id column does not exist yet in DB, update by code only
-    if (error && error.code === '42703') {
+    if (error && (error.code === 'PGRST204' || error.code === '42703')) {
       const fallback = await supabaseAdmin
         .from('shipments')
         .update(payload)
